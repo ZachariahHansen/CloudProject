@@ -29,6 +29,62 @@ Resources:
           Properties:
             Path: /hello
             Method: get
+  PostUser:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: post_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12.1
+      Architectures:
+      - x86_64
+      Events:
+        PostUser:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /users
+            Method: post
+  GetUser:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: get_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12.1
+      Architectures:
+      - x86_64
+      Events:
+        PostUser:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /users
+            Method: get
+  PutUser:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: put_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12.1
+      Architectures:
+      - x86_64
+      Events:
+        PostUser:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /users
+            Method: put
+  DeleteUser:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: delete_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12.1
+      Architectures:
+      - x86_64
+      Events:
+        PostUser:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /users
+            Method: delete
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
