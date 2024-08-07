@@ -1,14 +1,20 @@
 import json
 import os
-import requests
+import urllib3
 
 # OpenAI API endpoint
 OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
 def lambda_handler(event, context):
+    print("Received event:", json.dumps(event))
+
     try:
         # Parse the incoming event
-        body = json.loads(event['body'])
+        if isinstance(event['body'], str):
+            body = json.loads(event['body'])
+        else:
+            body = event['body']
+        
         game_id = body['game_id']
         round_number = body['round_number']
         prompt = body['prompt']
@@ -19,6 +25,9 @@ def lambda_handler(event, context):
 
         # Prepare the results
         results = []
+
+        # Initialize urllib3 PoolManager
+        http = urllib3.PoolManager()
 
         # Process each player's response
         for player_response in player_responses:
@@ -51,11 +60,15 @@ Based on the scenario and the player's response, provide a brief explanation of 
                 "max_tokens": 150,
                 "temperature": 0.7
             }
-            response = requests.post(OPENAI_API_ENDPOINT, headers=headers, json=data)
-            response.raise_for_status()
+            response = http.request(
+                'POST',
+                OPENAI_API_ENDPOINT,
+                body=json.dumps(data).encode('utf-8'),
+                headers=headers
+            )
 
             # Parse the API response
-            api_response = response.json()
+            api_response = json.loads(response.data.decode('utf-8'))
             ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
 
             # Add the result to the list
@@ -81,5 +94,5 @@ Based on the scenario and the player's response, provide a brief explanation of 
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps({'error': "Error:" + str(e)})
+            'body': json.dumps({'error': str(e)})
         }
