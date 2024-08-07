@@ -5,6 +5,13 @@ Description: >
 
   Sample SAM Template for CloudProject
 
+Parameters:
+  OpenAIApiKey:
+    Type: String
+    Description: OpenAI API Key
+    NoEcho: true
+
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -15,26 +22,31 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
 Resources:
-  HelloWorldFunction:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  RequestsLayer:
+    Type: AWS::Serverless::LayerVersion
     Properties:
-      CodeUri: hello_world/
-      Handler: app.lambda_handler
-      Runtime: python3.12.1
-      Architectures:
-      - x86_64
-      Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-          Properties:
-            Path: /hello
-            Method: get
+      LayerName: requests-layer
+      Description: Layer for requests library
+      ContentUri: dependencies/  # This should be a directory containing the requests library
+      CompatibleRuntimes:
+        - python3.11
+    Metadata:
+      BuildMethod: python3.11  # This tells SAM to use pip to install the requirements
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
   PostUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: post_user/
+<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: post.lambda_handler
       Runtime: python3.12.1
+=======
+      Handler: app.lambda_handler
+      Runtime: python3.11
+>>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
       Architectures:
       - x86_64
       Events:
@@ -47,12 +59,17 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: get_user/
+<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: get.lambda_handler
       Runtime: python3.12.1
+=======
+      Handler: app.lambda_handler
+      Runtime: python3.11
+>>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        GetUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
@@ -61,12 +78,17 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: put_user/
+<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: put.lambda_handler
       Runtime: python3.12.1
+=======
+      Handler: app.lambda_handler
+      Runtime: python3.11
+>>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        PutUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
@@ -75,27 +97,50 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: delete_user/
+<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: delete.lambda_handler
       Runtime: python3.12.1
+=======
+      Handler: app.lambda_handler
+      Runtime: python3.11
+>>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        DeleteUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
             Method: delete
+  AIEvaluationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Layers:
+        - !Ref RequestsLayer  # Attach the layer to this function
+      CodeUri: ai/
+      Handler: evaluate.lambda_handler
+      Runtime: python3.11
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          OPENAI_API_KEY: !Ref OpenAIApiKey
+      Policies:
+        - AWSLambdaBasicExecutionRole
+      Events:
+        ApiEvent:
+          Type: Api
+          Properties:
+            Path: /ai/evaluate
+            Method: post
 
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  AIEvaluationFunction:
+    Description: "AI Evaluation Lambda Function ARN"
+    Value: !GetAtt AIEvaluationFunction.Arn
+  AIEvaluationFunctionIamRole:
+    Description: "AI Evaluation Lambda Function IAM Role"
+    Value: !GetAtt AIEvaluationFunctionRole.Arn
+  ApiGatewayApi:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
