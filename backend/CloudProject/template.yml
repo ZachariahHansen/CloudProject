@@ -22,16 +22,16 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
 Resources:
-  RequestsLayer:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      LayerName: requests-layer
-      Description: Layer for requests library
-      ContentUri: dependencies/  # This should be a directory containing the requests library
-      CompatibleRuntimes:
-        - python3.11
-    Metadata:
-      BuildMethod: python3.11  # This tells SAM to use pip to install the requirements
+  # RequestsLayer:
+  #   Type: AWS::Serverless::LayerVersion
+  #   Properties:
+  #     LayerName: requests-layer
+  #     Description: Layer for requests library
+  #     ContentUri: dependencies/  # This should be a directory containing the requests library
+  #     CompatibleRuntimes:
+  #       - python3.11
+  #   Metadata:
+  #     BuildMethod: python3.11  # This tells SAM to use pip to install the requirements
   ServerlessRestApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -39,7 +39,7 @@ Resources:
   PostUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: post_user/
+      CodeUri: users/
       Handler: post.lambda_handler
       Runtime: python3.11
       Architectures:
@@ -53,7 +53,7 @@ Resources:
   GetUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: get_user/
+      CodeUri: users/
       Handler: get.lambda_handler
       Runtime: python3.12
       Architectures:
@@ -67,7 +67,7 @@ Resources:
   PutUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: put_user/
+      CodeUri: users/
       Handler: put.lambda_handler
       Runtime: python3.12
       Architectures:
@@ -81,7 +81,7 @@ Resources:
   DeleteUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
-      CodeUri: delete_user/
+      CodeUri: users/
       Handler: delete.lambda_handler
       Runtime: python3.12
       Architectures:
@@ -95,8 +95,8 @@ Resources:
   AIEvaluationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Layers:
-        - !Ref RequestsLayer  # Attach the layer to this function
+      # Layers:
+      #   - !Ref RequestsLayer  # Attach the layer to this function
       CodeUri: ai/
       Handler: evaluate.lambda_handler
       Runtime: python3.11
