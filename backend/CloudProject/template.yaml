@@ -33,7 +33,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: post_user/
-      Handler: app.lambda_handler
+      Handler: post.lambda_handler
       Runtime: python3.12.1
       Architectures:
       - x86_64
@@ -47,7 +47,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: get_user/
-      Handler: app.lambda_handler
+      Handler: get.lambda_handler
       Runtime: python3.12.1
       Architectures:
       - x86_64
@@ -61,7 +61,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: put_user/
-      Handler: app.lambda_handler
+      Handler: put.lambda_handler
       Runtime: python3.12.1
       Architectures:
       - x86_64
@@ -75,7 +75,7 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: delete_user/
-      Handler: app.lambda_handler
+      Handler: delete.lambda_handler
       Runtime: python3.12.1
       Architectures:
       - x86_64
