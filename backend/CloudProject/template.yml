@@ -40,13 +40,8 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: post_user/
-<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: post.lambda_handler
-      Runtime: python3.12.1
-=======
-      Handler: app.lambda_handler
       Runtime: python3.11
->>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
       Architectures:
       - x86_64
       Events:
@@ -59,13 +54,8 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: get_user/
-<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: get.lambda_handler
-      Runtime: python3.12.1
-=======
-      Handler: app.lambda_handler
-      Runtime: python3.11
->>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
+      Runtime: python3.12
       Architectures:
       - x86_64
       Events:
@@ -78,13 +68,8 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: put_user/
-<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: put.lambda_handler
-      Runtime: python3.12.1
-=======
-      Handler: app.lambda_handler
-      Runtime: python3.11
->>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
+      Runtime: python3.12
       Architectures:
       - x86_64
       Events:
@@ -97,13 +82,8 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: delete_user/
-<<<<<<< HEAD:backend/CloudProject/template.yaml
       Handler: delete.lambda_handler
-      Runtime: python3.12.1
-=======
-      Handler: app.lambda_handler
-      Runtime: python3.11
->>>>>>> 93bd150095003156877426be2b99a99e751d9d88:backend/CloudProject/template.yml
+      Runtime: python3.12
       Architectures:
       - x86_64
       Events:
