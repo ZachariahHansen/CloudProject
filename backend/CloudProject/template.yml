@@ -5,6 +5,13 @@ Description: >
 
   Sample SAM Template for CloudProject
 
+Parameters:
+  OpenAIApiKey:
+    Type: String
+    Description: OpenAI API Key
+    NoEcho: true
+
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -15,6 +22,20 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
 Resources:
+  RequestsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: requests-layer
+      Description: Layer for requests library
+      ContentUri: dependencies/  # This should be a directory containing the requests library
+      CompatibleRuntimes:
+        - python3.11
+    Metadata:
+      BuildMethod: python3.11  # This tells SAM to use pip to install the requirements
+  ServerlessRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
   PostUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -38,7 +59,7 @@ Resources:
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        GetUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
@@ -52,7 +73,7 @@ Resources:
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        PutUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
@@ -66,7 +87,7 @@ Resources:
       Architectures:
       - x86_64
       Events:
-        PostUser:
+        DeleteUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
@@ -74,6 +95,8 @@ Resources:
   AIEvaluationFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Layers:
+        - !Ref RequestsLayer  # Attach the layer to this function
       CodeUri: ai/
       Handler: evaluate.lambda_handler
       Runtime: python3.11
@@ -81,16 +104,9 @@ Resources:
       MemorySize: 256
       Environment:
         Variables:
-          # Add any environment variables your function needs here
-          BEDROCK_MODEL_ID: anthropic.claude-v2
+          OPENAI_API_KEY: !Ref OpenAIApiKey
       Policies:
         - AWSLambdaBasicExecutionRole
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - bedrock:InvokeModel
-              Resource: '*'  # You may want to restrict this to specific model ARNs
       Events:
         ApiEvent:
           Type: Api
@@ -98,19 +114,13 @@ Resources:
             Path: /ai/evaluate
             Method: post
 
-  ApiGatewayApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: prod
-      Cors:
-        AllowMethods: "'POST, OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-        AllowOrigin: "'*'"
-
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+  AIEvaluationFunction:
+    Description: "AI Evaluation Lambda Function ARN"
+    Value: !GetAtt AIEvaluationFunction.Arn
+  AIEvaluationFunctionIamRole:
+    Description: "AI Evaluation Lambda Function IAM Role"
+    Value: !GetAtt AIEvaluationFunctionRole.Arn
+  ApiGatewayApi:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"

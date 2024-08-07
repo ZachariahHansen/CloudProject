@@ -1,9 +1,9 @@
 import json
-import boto3
 import os
+import requests
 
-# Initialize the Bedrock client
-bedrock = boto3.client('bedrock-runtime')
+# OpenAI API endpoint
+OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
 def lambda_handler(event, context):
     try:
@@ -14,6 +14,9 @@ def lambda_handler(event, context):
         prompt = body['prompt']
         player_responses = body['player_responses']
 
+        # Get the API key from environment variable
+        api_key = os.environ['OPENAI_API_KEY']
+
         # Prepare the results
         results = []
 
@@ -22,8 +25,10 @@ def lambda_handler(event, context):
             player_id = player_response['player_id']
             response_text = player_response['response']
 
-            # Prepare the prompt for the AI
-            ai_prompt = f"""Scenario: {prompt}
+            # Prepare the messages for the ChatGPT API
+            messages = [
+                {"role": "system", "content": "You are an AI evaluating survival scenarios in a game."},
+                {"role": "user", "content": f"""Scenario: {prompt}
 
 Player's response: {response_text}
 
@@ -32,27 +37,26 @@ Based on the scenario and the player's response, provide a brief explanation of 
     "explanation": string,
     "survival": boolean
 }}
-"""
+"""}
+            ]
 
-            # Call the AI service (Amazon Bedrock)
-            ai_response = bedrock.invoke_model(
-                modelId='anthropic.claude-v2',  # or whichever model you're using
-                contentType='application/json',
-                accept='application/json',
-                body=json.dumps({
-                    "prompt": ai_prompt,
-                    "max_tokens_to_sample": 300,
-                    "temperature": 0.7,
-                    "top_p": 1,
-                    "top_k": 250,
-                    "stop_sequences": ["\n\nHuman:"],
-                    "anthropic_version": "bedrock-2023-05-31"
-                })
-            )
+            # Call the ChatGPT API
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "gpt-3.5-turbo",  # or "gpt-4" if you have access
+                "messages": messages,
+                "max_tokens": 150,
+                "temperature": 0.7
+            }
+            response = requests.post(OPENAI_API_ENDPOINT, headers=headers, json=data)
+            response.raise_for_status()
 
-            # Parse the AI response
-            ai_result = json.loads(ai_response['body'].read().decode())
-            ai_evaluation = json.loads(ai_result['completion'])
+            # Parse the API response
+            api_response = response.json()
+            ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
 
             # Add the result to the list
             results.append({
@@ -77,5 +81,5 @@ Based on the scenario and the player's response, provide a brief explanation of 
         print(f"Error: {str(e)}")
         return {
             'statusCode': 500,
-            'body': json.dumps({'error': 'Internal server error'})
+            'body': json.dumps({'error': "Error:" + str(e)})
         }

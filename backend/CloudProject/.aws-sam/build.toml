@@ -37,7 +37,7 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["DeleteUser"]
 
-[function_build_definitions.80aae50d-40e0-40eb-b507-93a94d8e567a]
+[function_build_definitions.a0eb8370-98de-4307-8fe2-b4dad3cc754b]
 codeuri = "C:\\Users\\Draupniyr\\Desktop\\github\\cloud\\CloudProject\\backend\\CloudProject\\ai"
 runtime = "python3.11"
 architecture = "x86_64"
@@ -46,4 +46,11 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["AIEvaluationFunction"]
 
-[layer_build_definitions]
+[layer_build_definitions.9c1fe8c1-e944-448d-ae3e-a6bd76caf48f]
+layer_name = "RequestsLayer"
+codeuri = "C:\\Users\\Draupniyr\\Desktop\\github\\cloud\\CloudProject\\backend\\CloudProject\\dependencies"
+build_method = "python3.11"
+compatible_runtimes = ["python3.11"]
+architecture = "x86_64"
+manifest_hash = ""
+layer = "RequestsLayer"
