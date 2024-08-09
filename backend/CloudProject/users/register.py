@@ -8,12 +8,17 @@ region_name = getenv('APP_REGION')
 Performer_table = boto3.resource('dynamodb', region_name=region_name).Table('Cloud_Users')
 
 def lambda_handler(event, context):
+
+    if isinstance(event['body'], str):
+        body = json.loads(event['body'])
+    else:
+        body = event['body']
     # Extract performer information
     Id = str(uuid4())
-    username = event["username"]
-    email_address = event["email_address"]
-    password = event["password"]
-    is_admin = event["is_admin"]
+    username = body["username"]
+    email_address = body["email_address"]
+    password = body["password"]
+    is_admin = body["is_admin"]
 
     # Validate required fields
     if not all([username, email_address, password, is_admin]):

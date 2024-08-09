@@ -7,8 +7,12 @@ region_name = getenv('APP_REGION')
 Performer_table = boto3.resource('dynamodb', region_name=region_name).Table('Cloud_Users')
 
 def lambda_handler(event, context):
-    # Extract the user Id
-    user_id = event.get("Id")
+    if isinstance(event['body'], str):
+        body = json.loads(event['body'])
+    else:
+        body = event['body']
+
+    user_id = body.get("Id")
 
     # Validate required fields
     if not user_id:

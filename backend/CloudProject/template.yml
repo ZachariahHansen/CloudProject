@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Description: OpenAI API Key
     NoEcho: true
+  UsersTable:
+    Type: String
+    Description: Users Table Name
+    Default: Cloud_Users
 
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -36,40 +40,42 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
-  PostUser:
+  RegisterUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: users/
-      Handler: post.lambda_handler
+      Handler: register.lambda_handler
       Runtime: python3.12
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         PostUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /users
+            Path: /users/register
             Method: post
-  GetUser:
+  LoginUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: users/
-      Handler: get.lambda_handler
+      Handler: login.lambda_handler
       Runtime: python3.12
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         GetUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
-            Path: /users
-            Method: get
+            Path: /users/login
+            Method: post
   PutUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -79,8 +85,9 @@ Resources:
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         PutUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -96,8 +103,9 @@ Resources:
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         DeleteUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api

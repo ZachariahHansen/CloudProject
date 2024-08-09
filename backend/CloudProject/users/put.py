@@ -9,10 +9,15 @@ User_table = boto3.resource('dynamodb', region_name=region_name).Table('Cloud_Us
 
 def lambda_handler(event, context):
     # Extract user information
-    username = event.get("username")
-    password = event.get("password")
-    email_address = event.get("email_address")
-    is_admin = event.get("is_admin", False)
+    if isinstance(event['body'], str):
+        body = json.loads(event['body'])
+    else:
+        body = event['body']
+
+    username = body.get("username")
+    password = body.get("password")
+    email_address = body.get("email_address")
+    is_admin = body.get("is_admin", False)
 
     # Validate required fields
     if not all([username, password, email_address]):
