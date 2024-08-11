@@ -94,6 +94,118 @@ Resources:
           Properties:
             Path: /users
             Method: delete
+
+  # LOBBY ENDPOINTS
+
+  CreateLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: create.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        CreateLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies
+            Method: post
+
+  ListLobbies:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: list.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        ListLobbies:
+          Type: Api
+          Properties:
+            Path: /lobbies
+            Method: get
+
+  GetLobbyDetails:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: getdetails.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        GetLobbyDetails:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}
+            Method: get
+
+  JoinLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: join.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        JoinLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/join
+            Method: post
+
+  LeaveLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: leave.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        LeaveLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/leave
+            Method: post
+
+  DeleteLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: delete.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        DeleteLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}
+            Method: delete
+
+
   AIEvaluationFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -112,7 +224,21 @@ Resources:
           Type: Api
           Properties:
             Path: /ai/evaluate
-            Method: post
+            Method: post          
+
+  LobbiesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Lobbies
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
 
 Outputs:
   AIEvaluationFunction:
