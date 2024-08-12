@@ -31,38 +31,42 @@ Resources:
     Properties:
       StageName: Prod
   RegisterUser:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: users/
       Handler: register.lambda_handler
       Runtime: python3.12
       Architectures:
       - x86_64
+      Layers:
+        - !Ref BcryptLayer
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
       Events:
         PostUser:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
             Path: /users/register
             Method: post
   LoginUser:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: users/
       Handler: login.lambda_handler
       Runtime: python3.12
       Architectures:
       - x86_64
+      Layers:
+        - !Ref BcryptLayer
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
       Events:
         GetUser:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
             Path: /users/login
             Method: post
@@ -102,6 +106,16 @@ Resources:
           Properties:
             Path: /users
             Method: delete
+
+  BcryptLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: bcrypt-layer
+      Description: Layer containing bcrypt library
+      ContentUri: bcrypt_layer/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Retain
 
   # LOBBY ENDPOINTS
 
