@@ -52,11 +52,17 @@ def db_insert(Id, username, email_address, password, is_admin):
         'is_admin': is_admin
     })
 
+
 def response(code, body):
     return {
         "statusCode": code,
         "headers": {
-            "Content-Type": "application/json"
-        },
+            "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*", 
+  "Access-Control-Allow-Credentials": "true", 
+  "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+},
         "body": json.dumps(body)
     }
+

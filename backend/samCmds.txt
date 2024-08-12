@@ -1,0 +1,87 @@
+sam init --name Todo2024Serverless
+
+set of questions next:
+answer - 1 1 y n n y
+
+be sure (py) versions are right in yaml file - 
+sam build
+sam validate
+sam local invoke [resource]  i.e.: sam local invoke HelloWorldFunction
+
+sam build -everytime yaml is changed
+sam validate
+sam local invoke HelloWorldFunction2
+
+sam local start-api
+
+
+
+
+
+sam local invoke HelloWorldFunction -e ./hello_world/event.json
+-to call event
+
+
+deploy:::
+
+sam deploy --guided
+
+Y to everything 
+
+---------
+sam deploy --guided
+
+Configuring SAM deploy
+======================
+
+        Looking for config file [samconfig.toml] :  Found
+        Reading default arguments  :  Success
+
+        Setting default arguments for 'sam deploy'
+        =========================================
+        Stack Name [Todo2024Serverless]: 
+        AWS Region [usa-east-2]: 
+        #Shows you resources changes to be deployed and require a 'Y' to initiate deploy
+        Confirm changes before deploy [Y/n]: Y
+        #SAM needs permission to be able to create roles to connect to the resources in your template
+        Allow SAM CLI IAM role creation [Y/n]: Y
+        #Preserves the state of previously provisioned resources when an operation fails
+        Disable rollback [y/N]: N
+        HelloWorldFunction has no authentication. Is this okay? [y/N]: Y
+        HelloWorldFunction2 has no authentication. Is this okay? [y/N]: Y
+        Save arguments to configuration file [Y/n]: Y
+        SAM configuration file [samconfig.toml]: 
+        SAM configuration environment [default]: 
+
+        Looking for resources needed for deployment:
+Error: Could not connect to the endpoint URL: "https://cloudformation.usa-east-2.amazonaws.com/"
+--------------
+
+
+-error is because region was not set-:
+
+aws configure set region us-east-2
+aws configure get region
+sam deploy --guided
+
+
+---------
+
+- delete and redeploy for policy changes
+
+sam delete
+        Are you sure you want to delete the stack CloudProject in the region us-east-2 ? [y/N]: y
+        Are you sure you want to delete the folder CloudProject in S3 which contains the artifacts? [y/N]: n
+        Do you want to delete the template file 713bb6d928d7c0017a3647b95c77bb7a.template in S3? [y/N]: n
+        - Deleting S3 object with key CloudProject/0cfe0f7c345425f0503da134a871e3d4
+        - Could not find and delete the S3 object with the key CloudProject/0cfe0f7c345425f0503da134a871e3d4
+        - Could not find and delete the S3 object with the key CloudProject/0cfe0f7c345425f0503da134a871e3d4
+        - Could not find and delete the S3 object with the key CloudProject/0cfe0f7c345425f0503da134a871e3d4
+        - Deleting S3 object with key CloudProject/f9f7a1aca55bac119a2b06a5f2c52fbd
+        - Deleting Cloudformation stack CloudProject
+
+GET REQUESTS CANNOT HAVE A BODY
+GET REQUESTS CANNOT HAVE A BODY
+GET REQUESTS CANNOT HAVE A BODY
+GET REQUESTS CANNOT HAVE A BODY
+GET REQUESTS CANNOT HAVE A BODY

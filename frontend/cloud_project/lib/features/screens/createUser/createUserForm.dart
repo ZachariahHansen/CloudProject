@@ -13,7 +13,6 @@ class _CreateUserFormState extends State<CreateUserForm> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _repassController = TextEditingController();
-  final GlobalKey<_DOBInputState> _dobKey = GlobalKey<_DOBInputState>();
 
   @override
   void dispose() {
@@ -64,8 +63,7 @@ class _CreateUserFormState extends State<CreateUserForm> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              SizedBox(height: 35),
-              DOBInput(key: _dobKey),
+              
               SizedBox(height: 35),
               TextFormField(
                 controller: _emailController,
@@ -115,13 +113,6 @@ class _CreateUserFormState extends State<CreateUserForm> {
                       if (error.isEmpty) {
                         error = validatePassword(_passController.text, _repassController.text);
                         if (error.isEmpty) {
-                          DateTime? dob = _dobKey.currentState?._selectedDate;
-                          if (await createAccount(_usernameController.text, dob.toString(), _emailController.text, _passController.text)) {                   
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => MyHomePage()),
-                            );
-                          }
                         }
                       }
                     }
@@ -172,49 +163,4 @@ class _CreateUserFormState extends State<CreateUserForm> {
   }
 }
 
-class DOBInput extends StatefulWidget {
-  const DOBInput({Key? key}) : super(key: key);
 
-  @override
-  _DOBInputState createState() => _DOBInputState();
-}
-
-class _DOBInputState extends State<DOBInput> {
-  DateTime? _selectedDate;
-  final _dateController = TextEditingController();
-
-  @override
-  void dispose() {
-    _dateController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: _dateController,
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.calendar_today),
-        labelText: 'DOB',
-        hintText: 'date of birth',
-        border: OutlineInputBorder(),
-      ),
-      readOnly: true,
-      onTap: () async {
-        final pickedDate = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime(1960),
-          lastDate: DateTime(2050),
-        );
-        if (pickedDate != null && pickedDate != _selectedDate) {
-          setState(() {
-            _selectedDate = pickedDate;
-            _dateController.text = _selectedDate.toString().split(' ')[0];
-            print('date: $pickedDate');
-          });
-        }
-      },
-    );
-  }
-}
