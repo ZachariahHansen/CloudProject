@@ -2,66 +2,88 @@ import boto3
 from os import getenv
 from uuid import uuid4
 import json
+import bcrypt
+import jwt
+from datetime import datetime, timedelta
 
 # Initialize the DynamoDB resource
 region_name = getenv('APP_REGION')
 User_table = boto3.resource('dynamodb', region_name=region_name).Table('Cloud_Users')
 
+# JWT configuration
+JWT_SECRET = getenv('JWT_SECRET')
+JWT_ALGORITHM = 'HS256'
+JWT_EXP_DELTA_SECONDS = 3600  # Token expiration time (1 hour)
+
 def lambda_handler(event, context):
-    # Extract the body from the event. Check if it's already a dictionary.
     body = event.get('body')
 
-    # If the body is a string (i.e., JSON string), parse it into a dictionary.
     if isinstance(body, str):
         try:
             body = json.loads(body)
         except json.JSONDecodeError:
             return response(400, "Invalid JSON in request body")
-
-    # If body is not a string and not a dictionary, return an error.
     elif not isinstance(body, dict):
         return response(400, "Body must be a JSON formatted string or a dict")
 
-    # Proceed with processing the body now that it's a dictionary.
     # Extract user information
     Id = str(uuid4())
     username = body.get("username")
     email_address = body.get("email_address")
-    password = body.get("password")  # This is the plain text password for now
+    password = body.get("password")
     is_admin = body.get("is_admin", False)
 
     # Validate required fields
     if not all([username, email_address, password]):
         return response(400, "Missing required fields")
 
+    # Hash the password
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
     # Insert the user data into DynamoDB
     try:
-        db_insert(Id, username, email_address, password, is_admin)  # Passing plain text password
+        db_insert(Id, username, email_address, hashed_password, is_admin)
     except Exception as e:
         return response(500, f"Error inserting into DynamoDB: {str(e)}")
 
-    return response(200, {"Id": Id})
+    # Generate JWT token
+    token = generate_jwt_token(Id)
 
+    return response(200, {"message": "Registration successful", "Id": Id, "token": token})
 
-def db_insert(Id, username, email_address, password, is_admin):
+def db_insert(Id, username, email_address, hashed_password, is_admin):
     User_table.put_item(Item={
         'Id': Id,
         'username': username,
         'email_address': email_address,
-        'password': password,  # Storing the plain text password
+        'password': hashed_password,
         'is_admin': is_admin
     })
 
+def generate_jwt_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + timedelta(seconds=JWT_EXP_DELTA_SECONDS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def response(code, body):
     return {
         "statusCode": code,
         "headers": {
+<<<<<<< HEAD
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
     "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
 },
+=======
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*", 
+            "Access-Control-Allow-Credentials": "true", 
+            "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+            "Access-Control-Allow-Methods": "POST, OPTIONS"
+        },
+>>>>>>> 77c55f093c6f2fd1a6eb07ede1a482b2f2bdd699
         "body": json.dumps(body)
     }
-
