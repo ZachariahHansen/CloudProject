@@ -80,11 +80,10 @@ def response(code, body):
     return {
         "statusCode": code,
         "headers": {
-            "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "*", 
-  "Access-Control-Allow-Credentials": "true", 
-  "Access-Control-Allow-Headers": "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+    "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
 },
         "body": json.dumps(body)
     }
