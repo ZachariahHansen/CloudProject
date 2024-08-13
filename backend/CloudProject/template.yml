@@ -31,9 +31,11 @@ Resources:
     Properties:
       StageName: Prod
       Cors:
-        AllowMethods: "'POST, GET, OPTIONS'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowMethods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
         AllowOrigin: "'*'"
+        MaxAge: "'300'"
+        AllowCredentials: true
   RegisterUser:
     Type: AWS::Serverless::Function
     Properties:
