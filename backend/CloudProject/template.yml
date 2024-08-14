@@ -19,13 +19,18 @@ Parameters:
     Description: JWT Secret
     NoEcho: true
     Default: "cummies"
+  ConnectionsTable:
+    Type: String
+    Description: WebSocket Connections Table Name
+    Default: WebSocketConnections
 
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 10
     Environment:
       Variables:
         JWT_SECRET: !Ref JWTSecret
+        CONNECTIONS_TABLE: !Ref ConnectionsTable
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
@@ -312,6 +317,160 @@ Resources:
             Path: /ai/evaluate
             Method: post          
 
+  # WEBSOCKET ENDPOINTS
+  # WebSocket API
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: GameWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+  # WebSocket Deployment
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WebSocketConnectRoute
+      - WebSocketDisconnectRoute
+      - WebSocketDefaultRoute
+    Properties:
+      ApiId: !Ref WebSocketApi
+
+  # WebSocket Stage
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref WebSocketDeployment
+      ApiId: !Ref WebSocketApi
+
+  # WebSocket Lambda Functions
+  WebSocketConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: connect.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ConnectionsTable
+
+  WebSocketDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: disconnect.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ConnectionsTable
+
+  WebSocketDefaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: default.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource:
+                - !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*'
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref ConnectionsTable
+
+  # WebSocket Routes
+  WebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketConnectInteg
+
+  WebSocketConnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      Description: Connect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations
+
+  WebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketDisconnectInteg
+
+  WebSocketDisconnectInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      Description: Disconnect Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations
+
+  WebSocketDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      OperationName: DefaultRoute
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketDefaultInteg
+
+  WebSocketDefaultInteg:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      Description: Default Integration
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDefaultFunction.Arn}/invocations
+
+
+  WebSocketConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref ConnectionsTable
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
   LobbiesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -326,6 +485,37 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
 
+  # Lambda permissions
+  WebSocketConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+      - WebSocketConnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketConnectFunction
+      Principal: apigateway.amazonaws.com
+
+  WebSocketDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+      - WebSocketDisconnectFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketDisconnectFunction
+      Principal: apigateway.amazonaws.com
+
+  WebSocketDefaultPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+      - WebSocketDefaultFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketDefaultFunction
+      Principal: apigateway.amazonaws.com
+
 Outputs:
   AIEvaluationFunction:
     Description: "AI Evaluation Lambda Function ARN"
@@ -336,3 +526,6 @@ Outputs:
   ApiGatewayApi:
     Description: "API Gateway endpoint URL for Prod stage"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  WebSocketApiEndpoint:
+    Description: "WebSocket API endpoint"
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${WebSocketStage}"
