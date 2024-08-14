@@ -1,3 +1,5 @@
+import 'package:cloud_project/features/screens/login/loginForm.dart';
+import 'package:cloud_project/features/scripts/login.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_project/features/screens/home/homeScreen.dart';
 import 'package:cloud_project/features/screens/login/loginScreen.dart';
@@ -13,7 +15,7 @@ class _CreateUserFormState extends State<CreateUserForm> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _repassController = TextEditingController();
-  final AuthService _authService = AuthService(); // Create an instance of AuthService
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -22,14 +24,6 @@ class _CreateUserFormState extends State<CreateUserForm> {
     _passController.dispose();
     _repassController.dispose();
     super.dispose();
-  }
-
-  bool get userValid {
-    return _usernameController.text.isNotEmpty &&
-        _emailController.text.isNotEmpty &&
-        _passController.text.isNotEmpty &&
-        _repassController.text.isNotEmpty &&
-        _passController.text == _repassController.text;
   }
 
   @override
@@ -57,31 +51,31 @@ class _CreateUserFormState extends State<CreateUserForm> {
             children: [
               TextFormField(
                 controller: _usernameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.person_outline_outlined),
-                  labelText: AutofillHints.username,
-                  hintText: 'username',
+                  labelText: 'Username',
+                  hintText: 'Enter your username',
                   border: OutlineInputBorder(),
                 ),
               ),
-              
               SizedBox(height: 35),
               TextFormField(
                 controller: _emailController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.email_outlined),
-                  labelText: AutofillHints.email,
-                  hintText: 'email',
+                  labelText: 'Email',
+                  hintText: 'Enter your email',
                   border: OutlineInputBorder(),
                 ),
               ),
               SizedBox(height: 35),
               TextFormField(
                 controller: _passController,
-                decoration: InputDecoration(
+                obscureText: true,
+                decoration: const InputDecoration(
                   prefixIcon: Icon(Icons.fingerprint),
-                  labelText: AutofillHints.password,
-                  hintText: 'password',
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     onPressed: null,
@@ -92,13 +86,14 @@ class _CreateUserFormState extends State<CreateUserForm> {
               SizedBox(height: 35),
               TextFormField(
                 controller: _repassController,
+                obscureText: true,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Icons.fingerprint),
-                  labelText: AutofillHints.password,
-                  hintText: 'confirm password',
+                  labelText: 'Confirm Password',
+                  hintText: 'Confirm your password',
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    onPressed: () {},
+                    onPressed: null,
                     icon: Icon(Icons.remove_red_eye_sharp),
                   ),
                 ),
@@ -108,24 +103,29 @@ class _CreateUserFormState extends State<CreateUserForm> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    String error = await _authService.validateUsername(_usernameController.text);
-                      if (error.isEmpty) {
-                        error = _authService.validatePassword(_passController.text, _repassController.text);
-                        if (error.isEmpty) {
-                        }
-                      }
-                    
+                    String usernameError = await _authService.validateUsername(_usernameController.text);
+                    String emailError = await _authService.validateEmail(_emailController.text);
+                    String passwordError = _authService.validatePassword(_passController.text, _repassController.text);
 
-                    if (error.isNotEmpty) {
-                      showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            content: Text(error),
-                            contentTextStyle: TextStyle(color: Colors.blue),
-                          );
-                        },
+                    if (usernameError.isEmpty && emailError.isEmpty && passwordError.isEmpty) {
+                      final response = await _authService.register(
+                        username: _usernameController.text,
+                        email: _emailController.text,
+                        password: _passController.text,
                       );
+
+                      if (response['success']) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => LogInPage()),
+                        );
+                      } else {
+                        _showErrorDialog(response['message']);
+                      }
+                    } else {
+                      String errorMessage = usernameError.isNotEmpty ? usernameError : 
+                                            emailError.isNotEmpty ? emailError : passwordError;
+                      _showErrorDialog(errorMessage);
                     }
                   },
                   child: Text('SIGN UP'),
@@ -160,6 +160,24 @@ class _CreateUserFormState extends State<CreateUserForm> {
       ),
     );
   }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Error'),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
-
-
