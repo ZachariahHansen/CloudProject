@@ -8,7 +8,7 @@ architecture = "x86_64"
 handler = "get.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["RegisterUser", "LoginUser", "PutUser", "DeleteUser"]
+functions = ["RegisterUser", "RegisterOptionsUser", "LoginUser", "LoginOptionsUser", "PutUser", "DeleteUser"]
 
 [function_build_definitions.7150c8fe-bdb2-4372-a2ae-3ef798ba962c]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\lobbies"

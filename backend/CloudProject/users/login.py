@@ -17,7 +17,24 @@ JWT_ALGORITHM = 'HS256'
 JWT_EXP_DELTA_SECONDS = 3600  # Token expiration time (1 hour)
 
 def lambda_handler(event, context):
+
     print(f"Received event: {json.dumps(event)}")
+
+    # Handle OPTIONS request
+    if event.get('httpMethod') == 'OPTIONS':
+        print("Handling OPTIONS request")
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                'Access-Control-Allow-Methods': 'OPTIONS,POST'
+            },
+            'body': json.dumps('OK')
+        }
+
+    print(f"HTTP Method: {event.get('httpMethod')}")
+    print(f"Event body: {event.get('body')}")
 
     try:
         if 'body' not in event:
@@ -28,6 +45,7 @@ def lambda_handler(event, context):
         username = body['username']
         password = body['password']
     except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error processing request: {str(e)}")
         return response(400, f"Error processing request: {str(e)}")
 
     if not all([username, password]):
