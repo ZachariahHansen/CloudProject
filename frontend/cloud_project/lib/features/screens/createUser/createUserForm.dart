@@ -108,14 +108,12 @@ class _CreateUserFormState extends State<CreateUserForm> {
                 child: ElevatedButton(
                   onPressed: () async {
                     String error = await validateUsername(_usernameController.text);
-                    if (error.isEmpty) {
-                      error = await validateEmail(_emailController.text);
                       if (error.isEmpty) {
                         error = validatePassword(_passController.text, _repassController.text);
                         if (error.isEmpty) {
                         }
                       }
-                    }
+                    
 
                     if (error.isNotEmpty) {
                       showDialog(

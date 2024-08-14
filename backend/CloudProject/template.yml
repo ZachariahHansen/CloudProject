@@ -52,7 +52,7 @@ Resources:
       CodeUri: users/
       Handler: register.lambda_handler
       Runtime: python3.12
-      Timeout: 30
+      Timeout: 100
       Architectures:
       - x86_64
       Layers:
@@ -67,12 +67,35 @@ Resources:
           Properties:
             Path: /users/register
             Method: post
+  RegisterOptionsUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: register.lambda_handler
+      Runtime: python3.12
+      Timeout: 100
+      Architectures:
+      - x86_64
+      Layers:
+        - !Ref BcryptLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        PostUser:
+          Type: Api
+          Properties:
+            Path: /users/register
+            Method: options
+
   LoginUser:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: users/
       Handler: login.lambda_handler
       Runtime: python3.12
+      Timeout: 100
       Architectures:
       - x86_64
       Layers:
@@ -87,6 +110,27 @@ Resources:
           Properties:
             Path: /users/login
             Method: post
+  LoginOptionsUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: login.lambda_handler
+      Runtime: python3.12
+      Timeout: 100
+      Architectures:
+      - x86_64
+      Layers:
+        - !Ref BcryptLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/login
+            Method: options
             
   PutUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction

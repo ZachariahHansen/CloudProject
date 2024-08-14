@@ -1,70 +1,67 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'dart:io';
-import 'dart:html' as html;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+class AuthService {
+  final String apiUrl = 'https://3es48sls0c.execute-api.us-east-2.amazonaws.com/Prod'; // Replace with your actual API URL
+  final storage = FlutterSecureStorage();
 
-Future<String> validateUsername(String username) async {
-  if (username.isEmpty) {
-    return "Please enter a value for username";
+  Future<Map<String, dynamic>> register({
+    required String username,
+    required String email,
+    required String password,
+    bool isAdmin = false,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiUrl/users/register'), // Adjust the endpoint if necessary
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'username': username,
+          'email_address': email,
+          'password': password,
+          'is_admin': isAdmin,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        
+        // Store the JWT token securely
+        await storage.write(key: 'jwt_token', value: responseData['token']);
+        await storage.write(key: 'user_id', value: responseData['Id']);
+
+        return {
+          'success': true,
+          'message': responseData['message'],
+          'userId': responseData['Id'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'Registration failed: ${response.body}',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: $e',
+      };
+    }
   }
 
-  final response = await http.get(Uri.parse('http://localhost:80/user/get/username/$username'));
-
-    if (response.statusCode == 404) {
-      return "";
-    }
-
-    return "Username is already linked to an existing account";
-}
-
-Future<String> validateEmail(String email) async {
-  RegExp expression = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-
-  if (expression.hasMatch(email)) {
-    final response = await http.get(Uri.parse('http://localhost:80/user/check/email/$email'));
-
-    if (response.statusCode == 404) {
-      return "";
-    }
-
-    return "email is already linked to an existing account";
+  Future<String?> getToken() async {
+    return await storage.read(key: 'jwt_token');
   }
 
-  return "Needs to be a valid email format example@example.com";
-}
-
-String validatePassword(String password, String confirmationPassword){
-  RegExp expression = RegExp(r'^(?=.*[A-Z])(?=.*[0-9]).{8,}$');
-  if(password == confirmationPassword) {
-    if (expression.hasMatch(password)) {
-      return "";
-    }
-
-    return "Password should contain at least one capital letter one number and be 8 characters in length";
+  Future<String?> getUserId() async {
+    return await storage.read(key: 'user_id');
   }
-  
-  return "Passwords don't match";
-}
 
-Future<bool> createAccount(String username, String dob, String email, String password) async {
-  var uri = Uri.parse('http://localhost:80/user/post');
-  var request = http.MultipartRequest('POST', uri);
-
-  request.fields['username'] = username;
-  request.fields['dob'] = dob.split(' ')[0];
-  request.fields['email'] = email;
-  request.fields['password'] = password;
-
-  var response = await request.send();
-
-  if (response.statusCode == 201) {
-    var responseBody = await response.stream.bytesToString();
-    html.window.localStorage["auth_token"] = responseBody;
-    print("Response body: $responseBody");
-    return true;
-  } 
-
-  print('Failed to create account: ${response.statusCode}');
-  return false;
+  Future<void> logout() async {
+    await storage.delete(key: 'jwt_token');
+    await storage.delete(key: 'user_id');
+  }
 }
