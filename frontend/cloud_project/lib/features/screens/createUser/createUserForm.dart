@@ -13,6 +13,7 @@ class _CreateUserFormState extends State<CreateUserForm> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _repassController = TextEditingController();
+  final AuthService _authService = AuthService(); // Create an instance of AuthService
 
   @override
   void dispose() {
@@ -107,9 +108,9 @@ class _CreateUserFormState extends State<CreateUserForm> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () async {
-                    String error = await validateUsername(_usernameController.text);
+                    String error = await _authService.validateUsername(_usernameController.text);
                       if (error.isEmpty) {
-                        error = validatePassword(_passController.text, _repassController.text);
+                        error = _authService.validatePassword(_passController.text, _repassController.text);
                         if (error.isEmpty) {
                         }
                       }
