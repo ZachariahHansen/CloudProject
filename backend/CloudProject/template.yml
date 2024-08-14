@@ -14,10 +14,18 @@ Parameters:
     Type: String
     Description: Users Table Name
     Default: Cloud_Users
+  JWTSecret:
+    Type: String
+    Description: JWT Secret
+    NoEcho: true
+    Default: "cummies"
 
 Globals:
   Function:
     Timeout: 3
+    Environment:
+      Variables:
+        JWT_SECRET: !Ref JWTSecret
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
@@ -33,13 +41,8 @@ Resources:
     Properties:
       StageName: Prod
       Cors:
-<<<<<<< HEAD
         AllowMethods: "'*'"
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-=======
-        AllowMethods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
-        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Requested-With'"
->>>>>>> 77c55f093c6f2fd1a6eb07ede1a482b2f2bdd699
         AllowOrigin: "'*'"
         MaxAge: "'300'"
         AllowCredentials: true
@@ -49,6 +52,7 @@ Resources:
       CodeUri: users/
       Handler: register.lambda_handler
       Runtime: python3.12
+      Timeout: 30
       Architectures:
       - x86_64
       Layers:

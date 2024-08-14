@@ -28,4 +28,11 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["AIEvaluationFunction"]
 
-[layer_build_definitions]
+[layer_build_definitions.091d1989-0fae-483b-acc5-a02cfa007958]
+layer_name = "BcryptLayer"
+codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\bcrypt_layer"
+build_method = "python3.12"
+compatible_runtimes = ["python3.12"]
+architecture = "x86_64"
+manifest_hash = "2abb975ccb6bb42dbeb980e2299247e8"
+layer = "BcryptLayer"
