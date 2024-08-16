@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_project/features/screens/lobby/lobbyListPage.dart';
+
 
 class HomePage extends StatelessWidget {
   @override
@@ -22,6 +24,10 @@ class HomePage extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Logic to join a lobby
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LobbyListPage()),
+                );
                 print("Join Lobby button pressed");
               },
               child: Text('Join Lobby'),
