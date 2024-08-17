@@ -14,6 +14,11 @@ Parameters:
     Type: String
     Description: WebSocket Connections Table Name
     Default: WebSocketConnections
+  JWTSecret:
+    Type: String
+    Description: Secret key for JWT token generation and validation
+    Default: "meowmeow"
+    NoEcho: true
 
 
 Globals:
