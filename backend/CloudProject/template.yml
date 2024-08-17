@@ -10,22 +10,84 @@ Parameters:
     Type: String
     Description: OpenAI API Key
     NoEcho: true
+  ConnectionsTable:
+    Type: String
+    Description: WebSocket Connections Table Name
+    Default: WebSocketConnections
 
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
+  Api:
+    Name: Prod
   Function:
     Timeout: 3
     MemorySize: 128
-
-    # You can add LoggingConfig parameters such as the Logformat, Log Group, and SystemLogLevel or ApplicationLogLevel. Learn more here https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-loggingconfig.
     LoggingConfig:
       LogFormat: JSON
 Resources:
-  ServerlessRestApi:
-    Type: AWS::Serverless::Api
+
+  #DYNAMODB TABLES
+  UsersTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      StageName: Prod
+      TableName: Users
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  LobbiesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Lobbies
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  GamesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Games
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  WebSocketConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref ConnectionsTable
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+        - AttributeName: gameId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: GameIdIndex
+          KeySchema:
+            - AttributeName: gameId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: TTL
+        Enabled: true
+
+  #USER ENDPOINTS
   PostUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -161,7 +223,14 @@ Resources:
         - x86_64
       Policies:
         - AWSLambdaBasicExecutionRole
-        - AmazonDynamoDBFullAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LobbiesTable
+        - LambdaInvokePolicy:
+            FunctionName: !Ref WebSocketDefaultFunction
+      Environment:
+        Variables:
+          LOBBIES_TABLE: !Ref LobbiesTable
+          WEBSOCKET_DEFAULT_FUNCTION: !Ref WebSocketDefaultFunction
       Events:
         JoinLobby:
           Type: Api
@@ -205,7 +274,265 @@ Resources:
             Path: /lobbies/{lobbyId}
             Method: delete
 
+  #GAMES ENDPOINTS
+  StartGame:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: start.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        StartGame:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/start
+            Method: post
 
+  GetGameState:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: state.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        GetGameState:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}
+            Method: get
+
+  SelectPrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: select_prompt.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        SelectPrompt:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/prompts/select
+            Method: post
+
+  GetRandomPrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: random_prompt.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        GetRandomPrompt:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/prompts/random
+            Method: post
+
+  SubmitResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: submit_response.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        SubmitResponse:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/responses
+            Method: post
+
+  GetRoundResults:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: round_results.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        GetRoundResults:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/results
+            Method: get
+
+  #WEBSOCKET ENDPOINTS
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: GameWebSocketApi
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+
+
+  # Define WebSocket functions
+  WebSocketConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: connect.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+
+  WebSocketDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: disconnect.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LobbiesTable
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          LOBBIES_TABLE: !Ref LobbiesTable
+
+  WebSocketDefaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: default.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref LobbiesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource: '*'
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          LOBBIES_TABLE: !Ref LobbiesTable
+          GAMES_TABLE: !Ref GamesTable
+          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+
+  # Define WebSocket routes and integrations
+  WebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      OperationName: ConnectRoute
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketConnectIntegration
+
+  WebSocketConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub: 
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations
+  # WebSocket Disconnect Route
+  WebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      OperationName: DisconnectRoute
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketDisconnectIntegration
+
+  WebSocketDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub: 
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations
+
+  # WebSocket Default Route
+  WebSocketDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      OperationName: DefaultRoute
+      Target: !Join 
+        - '/'
+        - - 'integrations'
+          - !Ref WebSocketDefaultIntegration
+
+  WebSocketDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: 
+        Fn::Sub: 
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDefaultFunction.Arn}/invocations
+
+
+  # Define WebSocket deployment and stage
+  WebSocketDeployment:
+    Type: AWS::ApiGatewayV2::Deployment
+    DependsOn:
+      - WebSocketConnectRoute
+      - WebSocketDisconnectRoute
+      - WebSocketDefaultRoute
+    Properties:
+      ApiId: !Ref WebSocketApi
+
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: Prod
+      Description: Prod Stage
+      DeploymentId: !Ref WebSocketDeployment
+      ApiId: !Ref WebSocketApi
+
+
+  # AI EVALUATION ENDPOINTS
   AIEvaluationFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -224,21 +551,7 @@ Resources:
           Type: Api
           Properties:
             Path: /ai/evaluate
-            Method: post          
-
-  LobbiesTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: Lobbies
-      AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-      KeySchema:
-        - AttributeName: id
-          KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+            Method: post     
 
 Outputs:
   AIEvaluationFunction:
@@ -250,3 +563,16 @@ Outputs:
   ApiGatewayApi:
     Description: "API Gateway endpoint URL for Prod stage"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  GamesTableName:
+    Description: "Name of the DynamoDB table for games"
+    Value: !Ref GamesTable
+    Export:
+      Name: GamesTableName
+  WebSocketApiEndpoint:
+    Description: "WebSocket API Endpoint"
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  ConnectionsTableName:
+    Description: "WebSocket Connections Table Name"
+    Value: !Ref WebSocketConnectionsTable
+    Export:
+      Name: WebSocketConnectionsTableName
