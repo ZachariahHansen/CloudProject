@@ -57,8 +57,8 @@ def lambda_handler(event, context):
         return response(500, f"Error querying DynamoDB: {str(e)}")
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        token = generate_jwt_token(user['Id'])
-        return response(200, {"message": "Login successful", "token": token, "user_id": user['Id']})
+        token = generate_jwt_token(user['id'])
+        return response(200, {"message": "Login successful", "token": token, "user_id": user['id']})
     else:
         return response(401, "Invalid username or password")
 
