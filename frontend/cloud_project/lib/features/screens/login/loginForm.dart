@@ -108,7 +108,7 @@ class _LogInFormState extends State<LogInForm> {
                       if (await loginService.login(_usernameController.text, _passController.text)) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => MyHomePage()),
+                          MaterialPageRoute(builder: (context) => HomePage()),
                         );
                       } else {
                         showDialog(

@@ -20,10 +20,20 @@ Globals:
   Api:
     Name: Prod
   Function:
-    Timeout: 3
+    Timeout: 10
+    Environment:
+      Variables:
+        JWT_SECRET: !Ref JWTSecret
+        CONNECTIONS_TABLE: !Ref ConnectionsTable
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
+  Api:
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+
 Resources:
 
   #DYNAMODB TABLES
@@ -92,36 +102,67 @@ Resources:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: users/
-      Handler: post.lambda_handler
+      Handler: register.lambda_handler
       Runtime: python3.12
+      Timeout: 100
       Architectures:
       - x86_64
+      Layers:
+        - !Ref BcryptLayer
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         PostUser:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
-            Path: /users
-            Method: post
-  GetUser:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+            Path: /users/register
+            Method: options
+
+  LoginUser:
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: users/
-      Handler: get.lambda_handler
+      Handler: login.lambda_handler
       Runtime: python3.12
+      Timeout: 100
       Architectures:
       - x86_64
+      Layers:
+        - !Ref BcryptLayer
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         GetUser:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Type: Api
           Properties:
-            Path: /users
-            Method: get
+            Path: /users/login
+            Method: post
+  LoginOptionsUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: login.lambda_handler
+      Runtime: python3.12
+      Timeout: 100
+      Architectures:
+      - x86_64
+      Layers:
+        - !Ref BcryptLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/login
+            Method: options
+            
   PutUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -131,8 +172,9 @@ Resources:
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         PutUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
@@ -148,14 +190,27 @@ Resources:
       Architectures:
       - x86_64
       Policies:
-      - AWSLambdaBasicExecutionRole
-      - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
       Events:
         DeleteUser:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             Path: /users
             Method: delete
+
+  BcryptLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: bcrypt-layer
+      Description: Layer containing bcrypt library
+      ContentUri: bcrypt_layer/
+      CompatibleRuntimes:
+        - python3.12
+      RetentionPolicy: Retain
+    Metadata:
+      BuildMethod: python3.12
 
   # LOBBY ENDPOINTS
 

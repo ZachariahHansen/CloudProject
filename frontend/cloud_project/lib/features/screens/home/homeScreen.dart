@@ -1,85 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_project/features/screens/home/homeGenerator.dart';
-// import 'package:cloud_project/features/screens/location/locationScreen.dart';
-// import 'package:cloud_project/features/screens/messages/messages/messageScreen.dart';
-// import 'package:cloud_project/features/screens/profile/view/profileScreen.dart';
-// import 'package:cloud_project/features/screens/search/searchScreen.dart';
+import 'package:cloud_project/features/screens/lobby/lobbyListPage.dart';
 
-class MyHomePage extends StatefulWidget {
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
 
-class _MyHomePageState extends State<MyHomePage> {
-  var selectedIndex = 0;
-
+class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    Widget page;
-    switch (selectedIndex) {
-      case 0:
-        page = GenerateHomePage();
-        break;
-      // case 1:
-      //   page = LocationPage();
-      //   break;
-      // case 2:
-      //   page = MessagesPage();
-      //   break;
-      // case 3:
-      //   page = SearchPage();
-      //   break;
-      // case 4:
-      //   page = ProfilePage();
-      //   break;
-      default:
-        throw UnimplementedError('no widget for $selectedIndex');
-    }
-
     return Scaffold(
-      body: Row(
-        children: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width * 0.15,
-            child: NavigationRail(
-              extended: true,
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (value) {
-                setState(() {
-                  selectedIndex = value;
-                });
+      appBar: AppBar(
+        title: Text('Home Page'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                // Logic to create a lobby
+                print("Create Lobby button pressed");
               },
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.add_location_sharp),
-                  label: Text('Location'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.message_rounded),
-                  label: Text('Messages'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.account_box_rounded),
-                  label: Text('Search'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.account_box_rounded),
-                  label: Text('Profile'),
-                ),
-              ],
+              child: Text('Create Lobby'),
             ),
-          ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: page,
+            SizedBox(height: 20), // Adds space between the buttons
+            ElevatedButton(
+              onPressed: () {
+                // Logic to join a lobby
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LobbyListPage()),
+                );
+                print("Join Lobby button pressed");
+              },
+              child: Text('Join Lobby'),
             ),
-          ),
-        ],
+            SizedBox(height: 20), // Adds space between the buttons
+            ElevatedButton(
+              onPressed: () {
+                // Logic to logout
+                print("Logout button pressed");
+                // You might want to navigate to the login screen after logout
+                Navigator.pop(context);
+              },
+              child: Text('Logout'),
+            ),
+          ],
+        ),
       ),
     );
   }
