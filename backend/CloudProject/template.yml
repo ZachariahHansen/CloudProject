@@ -45,13 +45,22 @@ Resources:
   UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Users
+      TableName: Cloud_Users
       AttributeDefinitions:
         - AttributeName: id
+          AttributeType: S
+        - AttributeName: username
           AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: username-index
+          KeySchema:
+            - AttributeName: username
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
 
   LobbiesTable:
@@ -103,8 +112,29 @@ Resources:
         Enabled: true
 
   #USER ENDPOINTS
-  PostUser:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  RegisterUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: register.lambda_handler
+      Runtime: python3.12
+      Timeout: 100
+      Architectures:
+      - x86_64
+      Layers:
+        - !Ref BcryptLayer
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Events:
+        PostUser:
+          Type: Api
+          Properties:
+            Path: /users/register
+            Method: post
+  RegisterOptionsUser:
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: users/
       Handler: register.lambda_handler
