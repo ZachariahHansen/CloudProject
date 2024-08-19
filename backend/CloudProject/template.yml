@@ -38,6 +38,11 @@ Globals:
       AllowMethods: "'*'"
       AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
       AllowOrigin: "'*'"
+    Auth:
+      DefaultAuthorizer: LambdaTokenAuthorizer
+      Authorizers:
+        LambdaTokenAuthorizer:
+          FunctionArn: !GetAtt AuthorizerFunction.Arn
 
 Resources:
 
@@ -133,6 +138,8 @@ Resources:
           Properties:
             Path: /users/register
             Method: post
+            Auth:
+              Authorizer: NONE
   RegisterOptionsUser:
     Type: AWS::Serverless::Function
     Properties:
@@ -154,7 +161,8 @@ Resources:
           Properties:
             Path: /users/register
             Method: options
-
+            Auth:
+              Authorizer: NONE  
   LoginUser:
     Type: AWS::Serverless::Function
     Properties:
@@ -176,6 +184,8 @@ Resources:
           Properties:
             Path: /users/login
             Method: post
+            Auth:
+              Authorizer: NONE
   LoginOptionsUser:
     Type: AWS::Serverless::Function
     Properties:
@@ -197,7 +207,8 @@ Resources:
           Properties:
             Path: /users/login
             Method: options
-            
+            Auth:
+              Authorizer: NONE
   PutUser:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
@@ -473,6 +484,18 @@ Resources:
             Path: /games/{gameId}/results
             Method: get
 
+  #AUTH ENDPOINTS
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: auth/
+      Handler: authorizer.lambda_handler
+      Runtime: python3.12
+      Environment:
+        Variables:
+          JWT_SECRET: !Ref JWTSecret
+
+          
   #WEBSOCKET ENDPOINTS
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
