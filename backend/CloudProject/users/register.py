@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 # Initialize the DynamoDB resource
 region_name = getenv('APP_REGION')
 User_table = boto3.resource('dynamodb', region_name=region_name).Table('Cloud_Users')
+ses = boto3.client('ses', region_name=region_name)
 
 # JWT configuration
 JWT_SECRET = getenv('JWT_SECRET')
@@ -16,7 +17,7 @@ JWT_ALGORITHM = 'HS256'
 JWT_EXP_DELTA_SECONDS = 3600  # Token expiration time (1 hour)
 
 def lambda_handler(event, context):
-# Handle OPTIONS request
+    # Handle OPTIONS request
     if event['httpMethod'] == 'OPTIONS':
         return {
             'statusCode': 200,
@@ -27,7 +28,6 @@ def lambda_handler(event, context):
             },
             'body': json.dumps('OK')
         }
-
 
     body = event.get('body')
 
@@ -53,24 +53,35 @@ def lambda_handler(event, context):
     # Hash the password
     hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+    # Generate verification token
+    verification_token = str(uuid4())
+
     # Insert the user data into DynamoDB
     try:
-        db_insert(Id, username, email_address, hashed_password, is_admin)
+        db_insert(Id, username, email_address, hashed_password, is_admin, verification_token)
     except Exception as e:
         return response(500, f"Error inserting into DynamoDB: {str(e)}")
+
+    # Send verification email
+    try:
+        send_verification_email(email_address, verification_token)
+    except Exception as e:
+        return response(500, f"Error sending verification email: {str(e)}")
 
     # Generate JWT token
     token = generate_jwt_token(Id)
 
-    return response(200, {"message": "Registration successful", "Id": Id, "token": token})
+    return response(200, {"message": "Registration successful. Please check your email to verify your account.", "Id": Id, "token": token})
 
-def db_insert(Id, username, email_address, hashed_password, is_admin):
+def db_insert(Id, username, email_address, hashed_password, is_admin, verification_token):
     User_table.put_item(Item={
         'Id': Id,
         'username': username,
         'email_address': email_address,
         'password': hashed_password,
-        'is_admin': is_admin
+        'is_admin': is_admin,
+        'verified': False,
+        'verification_token': verification_token
     })
 
 def generate_jwt_token(user_id):
@@ -80,14 +91,46 @@ def generate_jwt_token(user_id):
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
+def send_verification_email(email, token):
+    SENDER = "your-verified-sender@example.com"  # Replace with your SES verified email
+    SUBJECT = "Verify your email for Dangerous Scenario Game"
+    VERIFY_URL = f"https://your-api-gateway-url/users/verify?token={token}"  # Replace with your actual verification URL
+    BODY_TEXT = f"Please click the following link to verify your email: {VERIFY_URL}"
+    BODY_HTML = f"""
+    <html>
+    <head></head>
+    <body>
+        <h1>Verify your email for Dangerous Scenario Game</h1>
+        <p>Please click the following link to verify your email:</p>
+        <p><a href='{VERIFY_URL}'>Verify Email</a></p>
+    </body>
+    </html>
+    """
+
+    try:
+        ses.send_email(
+            Destination={'ToAddresses': [email]},
+            Message={
+                'Body': {
+                    'Html': {'Data': BODY_HTML},
+                    'Text': {'Data': BODY_TEXT},
+                },
+                'Subject': {'Data': SUBJECT},
+            },
+            Source=SENDER
+        )
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        raise
+
 def response(code, body):
     return {
         "statusCode": code,
         "headers": {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-    "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
-},
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
+        },
         "body": json.dumps(body)
     }

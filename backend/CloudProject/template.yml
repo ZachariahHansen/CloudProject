@@ -23,6 +23,10 @@ Parameters:
     Type: String
     Description: WebSocket Connections Table Name
     Default: WebSocketConnections
+  AppRegion:
+    Type: String
+    Description: Application Region
+    Default: us-east-1
 
 Globals:
   Function:
@@ -31,6 +35,7 @@ Globals:
       Variables:
         JWT_SECRET: !Ref JWTSecret
         CONNECTIONS_TABLE: !Ref ConnectionsTable
+        APP_REGION: !Ref AppRegion
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
@@ -59,19 +64,30 @@ Resources:
       Runtime: python3.12
       Timeout: 100
       Architectures:
-      - x86_64
+        - x86_64
       Layers:
         - !Ref BcryptLayer
       Policies:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+              Resource: '*'  # Be more specific in production
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          APP_REGION: !Ref AppRegion
+          JWT_SECRET: !Ref JWTSecret
       Events:
         PostUser:
           Type: Api
           Properties:
             Path: /users/register
             Method: post
+        
   RegisterOptionsUser:
     Type: AWS::Serverless::Function
     Properties:
@@ -88,11 +104,37 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsersTable
       Events:
-        PostUser:
+        OptionsUser:
           Type: Api
           Properties:
             Path: /users/register
             Method: options
+
+    
+  
+  VerifyEmail:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: verify.lambda_handler
+      Runtime: python3.12
+      Timeout: 100
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+          APP_REGION: !Ref AppRegion
+      Events:
+        VerifyEmail:
+          Type: Api
+          Properties:
+            Path: /users/verify
+            Method: get
 
   LoginUser:
     Type: AWS::Serverless::Function
