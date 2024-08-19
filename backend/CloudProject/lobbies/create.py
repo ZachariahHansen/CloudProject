@@ -16,7 +16,7 @@ def deserialize_dynamodb_item(item):
     return json.loads(json.dumps(item, default=decimal_default))
 
 def lambda_handler(event, context):
-    user_id = authenticate(event)
+    user_id = event['requestContext']['authorizer']['user_id']
     if not user_id:
         return {
             'statusCode': 401,
@@ -56,10 +56,6 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'message': f'Error creating lobby: {str(e)}'})
         }
-
-def authenticate(event):
-    # Placeholder for actual authentication logic
-    return 'user123'
 
 def put_item(item):
     table.put_item(Item=item)

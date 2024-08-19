@@ -75,7 +75,7 @@ def lambda_handler(event, context):
 
 def db_insert(Id, username, email_address, hashed_password, is_admin, verification_token):
     User_table.put_item(Item={
-        'Id': Id,
+        'id': Id,
         'username': username,
         'email_address': email_address,
         'password': hashed_password,

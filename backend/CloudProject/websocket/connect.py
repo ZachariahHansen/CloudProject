@@ -1,15 +1,15 @@
 import json
-import os
 import boto3
+import os
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table(os.environ['TABLE_NAME'])
+connections_table = dynamodb.Table(os.environ['CONNECTIONS_TABLE'])
 
 def lambda_handler(event, context):
     connection_id = event['requestContext']['connectionId']
     
-    # Store the connection ID in DynamoDB
-    table.put_item(
+    # Store the connection ID
+    connections_table.put_item(
         Item={
             'connectionId': connection_id
         }
