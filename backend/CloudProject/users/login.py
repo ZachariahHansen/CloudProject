@@ -80,7 +80,7 @@ def get_user(username):
 def generate_jwt_token(user_id):
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + timedelta(seconds=JWT_EXP_DELTA_SECONDS)
+        'exp': datetime.utcnow() + timedelta(minutes=JWT_EXP_DELTA_SECONDS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
