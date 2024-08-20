@@ -14,7 +14,7 @@ def deserialize_dynamodb_item(item):
     return json.loads(json.dumps(item, default=decimal_default))
 
 def lambda_handler(event, context):
-    user_id = authenticate(event)
+    user_id = event['requestContext']['authorizer']['principalId']
     if not user_id:
         return {
             'statusCode': 401,
@@ -45,15 +45,17 @@ def lambda_handler(event, context):
             'body': json.dumps(f'Error joining lobby: {str(e)}')
         }
 
-def authenticate(event):
-    return 'user123'
-
 def join_lobby(lobby_id, user_id):
     response = table.update_item(
         Key={'id': lobby_id},
-        UpdateExpression='SET current_players = current_players + :inc',
-        ConditionExpression='current_players < max_players',
-        ExpressionAttributeValues={':inc': 1},
+        UpdateExpression='SET current_players = current_players + :inc, players = list_append(if_not_exists(players, :empty_list), :new_player)',
+        ConditionExpression='current_players < max_players AND (NOT contains(players, :user_id))',
+        ExpressionAttributeValues={
+            ':inc': 1,
+            ':empty_list': [],
+            ':new_player': [user_id],
+            ':user_id': user_id
+        },
         ReturnValues='ALL_NEW'
     )
     return response.get('Attributes')
