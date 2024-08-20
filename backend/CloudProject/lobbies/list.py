@@ -34,7 +34,10 @@ def lambda_handler(event, context):
         }
 
 def authenticate(event):
-    return 'user123'
+    # The authorizer adds the user information to the requestContext
+    request_context = event.get('requestContext', {})
+    authorizer = request_context.get('authorizer', {})
+    return authorizer.get('user_id')
 
 def scan_lobbies():
     response = table.scan()
