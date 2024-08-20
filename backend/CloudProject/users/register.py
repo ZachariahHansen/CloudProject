@@ -92,7 +92,7 @@ def generate_jwt_token(user_id):
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 def send_verification_email(email, token):
-    SENDER = "your-verified-sender@example.com"  # Replace with your SES verified email
+    SENDER = "zachariahjhansen@gmail.com"  # Replace with your SES verified email
     SUBJECT = "Verify your email for Dangerous Scenario Game"
     VERIFY_URL = f"https://your-api-gateway-url/users/verify?token={token}"  # Replace with your actual verification URL
     BODY_TEXT = f"Please click the following link to verify your email: {VERIFY_URL}"

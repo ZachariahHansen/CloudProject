@@ -21,8 +21,9 @@ Parameters:
     NoEcho: true
   AppRegion:
     Type: String
-    Description: AWS Region where the app is deployed
-    Default: "us-east-2"
+    Description: Application Region
+    Default: us-east-2
+
 
 Globals:
   Function:
@@ -80,7 +81,7 @@ Resources:
       KeySchema:
         - AttributeName: id
           KeyType: HASH
-      # BillingMode: PAY_PER_REQUEST
+      BillingMode: PAY_PER_REQUEST
 
   GamesTable:
     Type: AWS::DynamoDB::Table
@@ -405,6 +406,10 @@ Resources:
           Properties:
             Path: /lobbies/{lobbyId}/start
             Method: post
+      Environment:
+        Variables:
+          LOBBIES_TABLE: !Ref LobbiesTable
+          GAMES_TABLE: !Ref GamesTable
 
   GetGameState:
     Type: AWS::Serverless::Function
@@ -423,6 +428,9 @@ Resources:
           Properties:
             Path: /games/{gameId}
             Method: get
+      Environment:
+        Variables:
+          GAMES_TABLE: !Ref GamesTable
 
   SelectPrompt:
     Type: AWS::Serverless::Function
@@ -503,11 +511,13 @@ Resources:
       CodeUri: auth/
       Handler: authorizer.lambda_handler
       Runtime: python3.12
+      Layers:
+        - !Ref BcryptLayer
       Environment:
         Variables:
           JWT_SECRET: !Ref JWTSecret
 
-          
+
   #WEBSOCKET ENDPOINTS
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
