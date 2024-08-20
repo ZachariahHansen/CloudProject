@@ -506,6 +506,8 @@ Resources:
       CodeUri: auth/
       Handler: authorizer.lambda_handler
       Runtime: python3.12
+      Layers:
+        - !Ref BcryptLayer
       Environment:
         Variables:
           JWT_SECRET: !Ref JWTSecret
