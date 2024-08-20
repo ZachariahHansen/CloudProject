@@ -19,11 +19,12 @@ Parameters:
     Description: Secret key for JWT token generation and validation
     Default: "meowmeow"
     NoEcho: true
-
+  AppRegion:
+    Type: String
+    Description: AWS Region where the app is deployed
+    Default: "us-east-2"
 
 Globals:
-  Api:
-    Name: Prod
   Function:
     Timeout: 10
     Environment:
@@ -35,6 +36,7 @@ Globals:
     LoggingConfig:
       LogFormat: JSON
   Api:
+    Name: Prod
     Cors:
       AllowMethods: "'*'"
       AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
@@ -44,7 +46,6 @@ Globals:
       Authorizers:
         LambdaTokenAuthorizer:
           FunctionArn: !GetAtt AuthorizerFunction.Arn
-
 Resources:
 
   #DYNAMODB TABLES
@@ -79,7 +80,7 @@ Resources:
       KeySchema:
         - AttributeName: id
           KeyType: HASH
-      BillingMode: PAY_PER_REQUEST
+      # BillingMode: PAY_PER_REQUEST
 
   GamesTable:
     Type: AWS::DynamoDB::Table
