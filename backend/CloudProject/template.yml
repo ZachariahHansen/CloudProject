@@ -408,6 +408,10 @@ Resources:
           Properties:
             Path: /lobbies/{lobbyId}/start
             Method: post
+      Environment:
+        Variables:
+          LOBBIES_TABLE: !Ref LobbiesTable
+          GAMES_TABLE: !Ref GamesTable
 
   GetGameState:
     Type: AWS::Serverless::Function
