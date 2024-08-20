@@ -430,6 +430,9 @@ Resources:
           Properties:
             Path: /games/{gameId}
             Method: get
+      Environment:
+        Variables:
+          GAMES_TABLE: !Ref GamesTable
 
   SelectPrompt:
     Type: AWS::Serverless::Function
