@@ -19,6 +19,10 @@ Parameters:
     Description: Secret key for JWT token generation and validation
     Default: "meowmeow"
     NoEcho: true
+  AppRegion:
+    Type: String
+    Description: Application Region
+    Default: us-east-2
 
 
 Globals:
@@ -506,7 +510,7 @@ Resources:
         Variables:
           JWT_SECRET: !Ref JWTSecret
 
-          
+
   #WEBSOCKET ENDPOINTS
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
