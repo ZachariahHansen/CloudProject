@@ -7,9 +7,7 @@ dynamodb = boto3.resource('dynamodb')
 prompts_table = dynamodb.Table('Prompts')
 games_table = dynamodb.Table('Games')
 
-def lambda_handler(event, context):
-    game_id = event['pathParameters']['gameId']
-    
+def lambda_handler(event, context):    
     # Get all prompts
     response = prompts_table.scan()
     prompts = response['Items']
@@ -23,17 +21,9 @@ def lambda_handler(event, context):
     # Select a random prompt
     random_prompt = random.choice(prompts)
     
-    # Update the game with the selected prompt
-    games_table.update_item(
-        Key={'id': game_id},
-        UpdateExpression='SET current_prompt = :prompt',
-        ExpressionAttributeValues={':prompt': random_prompt['id']}
-    )
-    
     return {
         'statusCode': 200,
         'body': json.dumps({
-            'prompt': random_prompt['text'],
-            'prompt_id': random_prompt['id']
+            'prompt_text': random_prompt['text']
         })
     }
