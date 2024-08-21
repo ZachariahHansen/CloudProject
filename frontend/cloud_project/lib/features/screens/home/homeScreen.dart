@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_project/features/screens/lobby/lobbyListPage.dart';
+import 'package:cloud_project/features/screens/lobby/lobbyScreen.dart';
 
 
 class HomePage extends StatelessWidget {
@@ -15,7 +16,17 @@ class HomePage extends StatelessWidget {
           children: <Widget>[
             ElevatedButton(
               onPressed: () {
-                // Logic to create a lobby
+                // Generate a unique lobby ID (you might want to use a more robust method)
+                String lobbyId = DateTime.now().millisecondsSinceEpoch.toString();
+                // Assume userId is available (you might need to pass this from a login screen)
+                String userId = 'user123';
+                
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LobbyPage(lobbyId: lobbyId, userId: userId),
+                  ),
+                );
                 print("Create Lobby button pressed");
               },
               child: Text('Create Lobby'),

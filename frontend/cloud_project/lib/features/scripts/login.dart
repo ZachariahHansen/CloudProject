@@ -12,7 +12,7 @@ class LoginService {
       print("Username: $username");
       print("Password $password");
       final response = await http.post(
-        Uri.parse('https://3es48sls0c.execute-api.us-east-2.amazonaws.com/Prod/users/login'),
+        Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/users/login'),
         headers: {
           "Content-Type": "application/json"
         },

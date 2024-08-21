@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_project/features/screens/lobby/lobbyScreen.dart';
 
 class LobbyListPage extends StatefulWidget {
   const LobbyListPage({Key? key}) : super(key: key);
@@ -55,7 +56,12 @@ class _LobbyListPageState extends State<LobbyListPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // TODO: Implement create lobby functionality
+          
+                // Logic to join a lobby
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LobbyListPage()),
+                );
           print('Create new lobby');
         },
         child: Icon(Icons.add),

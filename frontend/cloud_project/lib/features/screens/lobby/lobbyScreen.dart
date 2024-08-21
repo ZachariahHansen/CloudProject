@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_project/models/webSockets.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:cloud_project/features/screens/game/prompt/selectPrompt.dart';
 import 'dart:convert';
 
 class LobbyPage extends StatefulWidget {
@@ -25,7 +27,7 @@ class _LobbyPageState extends State<LobbyPage> {
   void _connectWebSocket() {
     // Replace with your actual WebSocket URL
     _channel = WebSocketChannel.connect(
-      Uri.parse('wss://your-websocket-url.com/Prod?lobbyId=${widget.lobbyId}&userId=${widget.userId}'),
+      Uri.parse('wss://g19wuss786.execute-api.us-east-2.amazonaws.com/Prod/@connect'),
     );
 
     _channel.stream.listen((message) {
@@ -44,6 +46,12 @@ class _LobbyPageState extends State<LobbyPage> {
       'action': 'startGame',
       'lobbyId': widget.lobbyId,
     }));
+    // Temp lobby ID
+    String lobbyId = '123123';
+    Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => PromptSelectionPage(gameId: lobbyId)),
+                );
   }
 
   void _leaveLobby() {
