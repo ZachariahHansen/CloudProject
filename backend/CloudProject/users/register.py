@@ -44,7 +44,7 @@ def lambda_handler(event, context):
     username = body.get("username")
     email_address = body.get("email_address")
     password = body.get("password")
-    is_admin = body.get("is_admin", False)
+    is_admin = False
 
     # Validate required fields
     if not all([username, email_address, password]):
