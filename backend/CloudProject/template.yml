@@ -447,7 +447,27 @@ Resources:
         Variables:
           GAMES_TABLE: !Ref GamesTable
 
-  
+  SubmitResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: submit_response.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
+      Events:
+        SubmitResponse:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/responses/submit
+            Method: post 
+      Environment:
+        Variables:
+          GAMES_TABLE: !Ref GamesTable
+
 
 
   GetRandomPrompt:
@@ -760,8 +780,11 @@ Resources:
       Environment:
         Variables:
           OPENAI_API_KEY: !Ref OpenAIApiKey
+          GAMES_TABLE: !Ref GamesTable
+          PROMPTS_TABLE: !Ref PromptsTable
       Policies:
         - AWSLambdaBasicExecutionRole
+        - AmazonDynamoDBFullAccess
       Events:
         ApiEvent:
           Type: Api
