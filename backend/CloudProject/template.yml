@@ -305,6 +305,9 @@ Resources:
           Properties:
             Path: /lobbies
             Method: post
+      Environment:
+        Variables:
+          LOBBIES_TABLE: !Ref LobbiesTable
 
   ListLobbies:
     Type: AWS::Serverless::Function
