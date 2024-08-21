@@ -1,11 +1,12 @@
 import json
 import boto3
 import uuid
+import os
 from decimal import Decimal
 from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('Lobbies')
+table = dynamodb.Table(os.environ.get('LOBBIES_TABLE', 'Lobbies'))
 
 def decimal_default(obj):
     if isinstance(obj, Decimal):
@@ -18,6 +19,7 @@ def deserialize_dynamodb_item(item):
 def lambda_handler(event, context):
     user_id = event['requestContext']['authorizer']['user_id']
     if not user_id:
+        print("user_id not found, hit create lobby")
         return {
             'statusCode': 401,
             'body': json.dumps({'message': 'Unauthorized'})
