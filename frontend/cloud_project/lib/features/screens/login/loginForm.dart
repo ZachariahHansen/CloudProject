@@ -3,6 +3,7 @@ import 'package:cloud_project/features/screens/createUser/createUser.dart';
 import 'package:cloud_project/features/screens/home/homeScreen.dart';
 import 'package:cloud_project/features/screens/login/password/email/getEmail.dart';
 import 'package:cloud_project/features/scripts/login.dart';
+import 'package:cloud_project/features/screens/admin/adminScreen.dart';
 
 class LogInForm extends StatefulWidget {
   @override
@@ -105,12 +106,19 @@ class _LogInFormState extends State<LogInForm> {
                 child: ElevatedButton(
                     onPressed: () async {
                       //TODOS: if login successful, if not give error message
-                      if (await loginService.login(_usernameController.text, _passController.text)) {
+                      if (await loginService.login(_usernameController.text, _passController.text) == 1) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(builder: (context) => HomePage()),
                         );
-                      } else {
+                      } 
+                      else if (await loginService.login(_usernameController.text, _passController.text) == 2) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AdminPromptManagementPage()),
+                        );
+                      }
+                      else {
                         showDialog(
                             context: context,
                             builder: (BuildContext context) {

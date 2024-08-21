@@ -17,7 +17,6 @@ JWT_ALGORITHM = 'HS256'
 JWT_EXP_DELTA_SECONDS = 3600  # Token expiration time (1 hour)
 
 def lambda_handler(event, context):
-
     print(f"Received event: {json.dumps(event)}")
 
     # Handle OPTIONS request
@@ -57,8 +56,13 @@ def lambda_handler(event, context):
         return response(500, f"Error querying DynamoDB: {str(e)}")
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        token = generate_jwt_token(user['id'])
-        return response(200, {"message": "Login successful", "token": token, "user_id": user['id']})
+        token = generate_jwt_token(user['id'], user['is_admin'])
+        return response(200, {
+            "message": "Login successful", 
+            "token": token, 
+            "user_id": user['id'],
+            "is_admin": user['is_admin']
+        })
     else:
         return response(401, "Invalid username or password")
 
@@ -77,10 +81,11 @@ def get_user(username):
         print(f"An unexpected error occurred: {str(e)}")
         raise
 
-def generate_jwt_token(user_id):
+def generate_jwt_token(user_id, is_admin):
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + timedelta(minutes=JWT_EXP_DELTA_SECONDS)
+        'is_admin': is_admin,
+        'exp': datetime.utcnow() + timedelta(seconds=JWT_EXP_DELTA_SECONDS)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -88,10 +93,10 @@ def response(code, body):
     return {
         "statusCode": code,
         "headers": {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-    "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
-},
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
+        },
         "body": json.dumps(body)
     }

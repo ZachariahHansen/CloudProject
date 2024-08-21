@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_project/models/webSockets.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:cloud_project/features/screens/game/prompt/selectPrompt.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 
 class LobbyPage extends StatefulWidget {
@@ -16,12 +17,23 @@ class LobbyPage extends StatefulWidget {
 
 class _LobbyPageState extends State<LobbyPage> {
   late WebSocketChannel _channel;
-  List<String> _players = [];
+  List<Map<String, String>> _players = [];
+  String _username = '';
+  final storage = FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
+    _loadUsername();
     _connectWebSocket();
+  }
+
+  Future<void> _loadUsername() async {
+    final username = await storage.read(key: 'username');
+    setState(() {
+      _username = username ?? 'Unknown Player';
+      _players.add({'id': widget.userId, 'name': _username});
+    });
   }
 
   void _connectWebSocket() {
@@ -34,7 +46,12 @@ class _LobbyPageState extends State<LobbyPage> {
       final data = json.decode(message);
       if (data['type'] == 'playerList') {
         setState(() {
-          _players = List<String>.from(data['players']);
+          // Update the player list, but keep the current user
+          _players = [
+            {'id': widget.userId, 'name': _username},
+            ...List<Map<String, String>>.from(data['players'])
+                .where((player) => player['id'] != widget.userId)
+          ];
         });
       }
     });
@@ -46,12 +63,10 @@ class _LobbyPageState extends State<LobbyPage> {
       'action': 'startGame',
       'lobbyId': widget.lobbyId,
     }));
-    // Temp lobby ID
-    String lobbyId = '123123';
     Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => PromptSelectionPage(gameId: lobbyId)),
-                );
+      context,
+      MaterialPageRoute(builder: (context) => PromptSelectionPage(gameId: widget.lobbyId)),
+    );
   }
 
   void _leaveLobby() {
@@ -86,8 +101,10 @@ class _LobbyPageState extends State<LobbyPage> {
               child: ListView.builder(
                 itemCount: _players.length,
                 itemBuilder: (context, index) {
+                  final player = _players[index];
                   return ListTile(
-                    title: Text(_players[index]),
+                    title: Text(player['name'] ?? 'Unknown Player'),
+                    trailing: player['id'] == widget.userId ? Text('(You)') : null,
                   );
                 },
               ),
