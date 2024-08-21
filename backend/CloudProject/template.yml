@@ -47,6 +47,10 @@ Globals:
       Authorizers:
         LambdaTokenAuthorizer:
           FunctionArn: !GetAtt AuthorizerFunction.Arn
+          Identity:
+            Headers:
+              - Authorization
+          AuthorizerResultTtlInSeconds: 0  # This disables caching
 Resources:
 
   #DYNAMODB TABLES
@@ -118,6 +122,17 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: TTL
         Enabled: true
+  PromptsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Prompts
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
   #USER ENDPOINTS
   RegisterUser:
@@ -432,23 +447,8 @@ Resources:
         Variables:
           GAMES_TABLE: !Ref GamesTable
 
-  SelectPrompt:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: games/
-      Handler: select_prompt.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Policies:
-        - AWSLambdaBasicExecutionRole
-        - AmazonDynamoDBFullAccess
-      Events:
-        SelectPrompt:
-          Type: Api
-          Properties:
-            Path: /games/{gameId}/prompts/select
-            Method: post
+  
+
 
   GetRandomPrompt:
     Type: AWS::Serverless::Function
@@ -456,35 +456,112 @@ Resources:
       CodeUri: games/
       Handler: random_prompt.lambda_handler
       Runtime: python3.12
-      Architectures:
-        - x86_64
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AmazonDynamoDBFullAccess
+        - DynamoDBReadPolicy:
+            TableName: !Ref PromptsTable
       Events:
         GetRandomPrompt:
           Type: Api
           Properties:
             Path: /games/{gameId}/prompts/random
-            Method: post
+            Method: get
 
-  SubmitResponse:
+  SubmitPrompt:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: games/
-      Handler: submit_response.lambda_handler
+      Handler: submit_prompt.lambda_handler
       Runtime: python3.12
-      Architectures:
-        - x86_64
       Policies:
-        - AWSLambdaBasicExecutionRole
-        - AmazonDynamoDBFullAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Ref GamesTable
       Events:
-        SubmitResponse:
+        SubmitPrompt:
           Type: Api
           Properties:
-            Path: /games/{gameId}/responses
+            Path: /games/{gameId}/prompts/submit
             Method: post
+
+  # Admin CRUD operations for prompts
+  CreatePrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: create_prompt.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        CreatePrompt:
+          Type: Api
+          Properties:
+            Path: /admin/prompts
+            Method: post
+
+  GetPrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: get_prompt.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        GetPrompt:
+          Type: Api
+          Properties:
+            Path: /admin/prompts/{promptId}
+            Method: get
+
+  UpdatePrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: update_prompt.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        UpdatePrompt:
+          Type: Api
+          Properties:
+            Path: /admin/prompts/{promptId}
+            Method: put
+
+  DeletePrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: delete_prompt.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        DeletePrompt:
+          Type: Api
+          Properties:
+            Path: /admin/prompts/{promptId}
+            Method: delete
+
+  ListPrompts:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: list_prompts.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        ListPrompts:
+          Type: Api
+          Properties:
+            Path: /admin/prompts
+            Method: get
 
   GetRoundResults:
     Type: AWS::Serverless::Function
@@ -516,6 +593,10 @@ Resources:
       Environment:
         Variables:
           JWT_SECRET: !Ref JWTSecret
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+
 
 
   #WEBSOCKET ENDPOINTS

@@ -9,9 +9,23 @@ games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
 lobbies_table = dynamodb.Table(os.environ.get('LOBBIES_TABLE', 'Lobbies'))
 
 def lambda_handler(event, context):
+    print(f"Received event: {json.dumps(event)}")  # Log the entire event
+
     try:
         lobby_id = event['pathParameters']['lobbyId']
-        user_id = event['requestContext']['authorizer']['lambda']['user_id']
+        
+        # Extract user_id from the authorizer context
+        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
+        user_id = authorizer_context.get('user_id')
+
+        if not user_id:
+            print("Unable to find user_id in the authorizer context")
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'message': 'User ID not found in request'})
+            }
+
+        print(f"User ID: {user_id}")  # Log the user ID
 
         # Get the lobby
         lobby = lobbies_table.get_item(Key={'id': lobby_id})['Item']
