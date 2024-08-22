@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final String apiUrl = 'https://3es48sls0c.execute-api.us-east-2.amazonaws.com/Prod/';
+  final String apiUrl = 'https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod';
   final storage = FlutterSecureStorage();
 
   Future<Map<String, dynamic>> register({

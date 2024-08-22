@@ -65,7 +65,11 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
     if (response.statusCode == 201) {
       _newPromptController.clear();
       fetchPrompts();
-    } else {
+    } 
+    else if (response.statusCode == 401) {
+      print('Authentication failed');
+    }
+    else {
       // Handle error
       print('Failed to add prompt');
     }

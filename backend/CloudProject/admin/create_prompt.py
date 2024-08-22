@@ -17,8 +17,16 @@ def lambda_handler(event, context):
 
     # Handle OPTIONS request
     if event.get('httpMethod') == 'OPTIONS':
-        logger.info("Handling OPTIONS request")
-        return response(200, 'OK')
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+                'Access-Control-Allow-Methods': 'OPTIONS,GET',
+                'Access-Control-Max-Age': '3600',
+            },
+            'body': json.dumps('OK')
+        }
 
     # Extract user information from the authorizer context
     try:
