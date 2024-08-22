@@ -17,16 +17,8 @@ def lambda_handler(event, context):
 
     # Handle OPTIONS request
     if event.get('httpMethod') == 'OPTIONS':
-        print("Handling OPTIONS request")
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-                'Access-Control-Allow-Methods': 'OPTIONS,POST'
-            },
-            'body': json.dumps('OK')
-        }
+        logger.info("Handling OPTIONS request")
+        return response(200, 'OK')
 
     # Extract user information from the authorizer context
     try:
@@ -45,6 +37,11 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event['body'])
         prompt_text = body['text']
+        
+        # Validate prompt text
+        if not prompt_text or not isinstance(prompt_text, str):
+            logger.error("Invalid prompt text")
+            return response(400, {'message': 'Invalid prompt text. Must be a non-empty string.'})
         
         # Create new prompt
         new_prompt = {
@@ -65,18 +62,21 @@ def lambda_handler(event, context):
     except ClientError as e:
         logger.error(f"DynamoDB ClientError: {str(e)}")
         return response(500, {'message': 'Failed to create prompt in database'})
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON Decode Error: {str(e)}")
+        return response(400, {'message': 'Invalid JSON in request body'})
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
-        return response(500, {'message': f'An unexpected error occurred: {str(e)}'})
+        return response(500, {'message': 'An unexpected error occurred'})
 
-def response(code, body):
+def response(status_code, body):
     return {
-        "statusCode": code,
+        "statusCode": status_code,
         "headers": {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-    "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
-},
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET,PUT,DELETE"
+        },
         "body": json.dumps(body)
     }
