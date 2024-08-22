@@ -10,10 +10,6 @@ Parameters:
     Type: String
     Description: OpenAI API Key
     NoEcho: true
-  ConnectionsTable:
-    Type: String
-    Description: WebSocket Connections Table Name
-    Default: WebSocketConnections
   JWTSecret:
     Type: String
     Description: Secret key for JWT token generation and validation
@@ -99,29 +95,6 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
-  WebSocketConnectionsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: !Ref ConnectionsTable
-      AttributeDefinitions:
-        - AttributeName: connectionId
-          AttributeType: S
-        - AttributeName: gameId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: connectionId
-          KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: GameIdIndex
-          KeySchema:
-            - AttributeName: gameId
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
-      BillingMode: PAY_PER_REQUEST
-      TimeToLiveSpecification:
-        AttributeName: TTL
-        Enabled: true
   PromptsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -299,6 +272,11 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - AmazonDynamoDBFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt BroadcastFunction.Arn
       Events:
         CreateLobby:
           Type: Api
@@ -308,7 +286,9 @@ Resources:
       Environment:
         Variables:
           LOBBIES_TABLE: !Ref LobbiesTable
-
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
   ListLobbies:
     Type: AWS::Serverless::Function
     Properties:
@@ -357,12 +337,9 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref LobbiesTable
-        - LambdaInvokePolicy:
-            FunctionName: !Ref WebSocketDefaultFunction
       Environment:
         Variables:
           LOBBIES_TABLE: !Ref LobbiesTable
-          WEBSOCKET_DEFAULT_FUNCTION: !Ref WebSocketDefaultFunction
       Events:
         JoinLobby:
           Type: Api
@@ -642,155 +619,152 @@ Resources:
             TableName: !Ref UsersTable
 
 
-
-  #WEBSOCKET ENDPOINTS
   WebSocketApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: GameWebSocketApi
+      Name: WebSocketAPI
       ProtocolType: WEBSOCKET
       RouteSelectionExpression: "$request.body.action"
 
-
-  # Define WebSocket functions
-  WebSocketConnectFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: websocket/
-      Handler: connect.lambda_handler
-      Runtime: python3.12
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ConnectionsTable
-      Environment:
-        Variables:
-          CONNECTIONS_TABLE: !Ref ConnectionsTable
-
-  WebSocketDisconnectFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: websocket/
-      Handler: disconnect.lambda_handler
-      Runtime: python3.12
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ConnectionsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref LobbiesTable
-      Environment:
-        Variables:
-          CONNECTIONS_TABLE: !Ref ConnectionsTable
-          LOBBIES_TABLE: !Ref LobbiesTable
-
-  WebSocketDefaultFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: websocket/
-      Handler: default.lambda_handler
-      Runtime: python3.12
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ConnectionsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref LobbiesTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref GamesTable
-        - Statement:
-            - Effect: Allow
-              Action:
-                - 'execute-api:ManageConnections'
-              Resource: '*'
-      Environment:
-        Variables:
-          CONNECTIONS_TABLE: !Ref ConnectionsTable
-          LOBBIES_TABLE: !Ref LobbiesTable
-          GAMES_TABLE: !Ref GamesTable
-          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
-
-  # Define WebSocket routes and integrations
-  WebSocketConnectRoute:
+  ConnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref WebSocketApi
       RouteKey: $connect
       AuthorizationType: NONE
       OperationName: ConnectRoute
-      Target: !Join 
+      Target: !Join
         - '/'
         - - 'integrations'
-          - !Ref WebSocketConnectIntegration
+          - !Ref ConnectInteg
 
-  WebSocketConnectIntegration:
+  ConnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref WebSocketApi
+      Description: Connect Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: 
-        Fn::Sub: 
-            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations
-  # WebSocket Disconnect Route
-  WebSocketDisconnectRoute:
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnConnectFunction.Arn}/invocations
+
+  DisconnectRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref WebSocketApi
       RouteKey: $disconnect
       AuthorizationType: NONE
       OperationName: DisconnectRoute
-      Target: !Join 
+      Target: !Join
         - '/'
         - - 'integrations'
-          - !Ref WebSocketDisconnectIntegration
+          - !Ref DisconnectInteg
 
-  WebSocketDisconnectIntegration:
+  DisconnectInteg:
     Type: AWS::ApiGatewayV2::Integration
     Properties:
       ApiId: !Ref WebSocketApi
+      Description: Disconnect Integration
       IntegrationType: AWS_PROXY
       IntegrationUri: 
-        Fn::Sub: 
-            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations
+        Fn::Sub:
+            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${OnDisconnectFunction.Arn}/invocations
 
-  # WebSocket Default Route
-  WebSocketDefaultRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref WebSocketApi
-      RouteKey: $default
-      AuthorizationType: NONE
-      OperationName: DefaultRoute
-      Target: !Join 
-        - '/'
-        - - 'integrations'
-          - !Ref WebSocketDefaultIntegration
-
-  WebSocketDefaultIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref WebSocketApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: 
-        Fn::Sub: 
-            arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDefaultFunction.Arn}/invocations
-
-
-  # Define WebSocket deployment and stage
-  WebSocketDeployment:
+  Deployment:
     Type: AWS::ApiGatewayV2::Deployment
     DependsOn:
-      - WebSocketConnectRoute
-      - WebSocketDisconnectRoute
-      - WebSocketDefaultRoute
+      - ConnectRoute
+      - DisconnectRoute
     Properties:
       ApiId: !Ref WebSocketApi
 
-  WebSocketStage:
+  Stage:
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       StageName: Prod
       Description: Prod Stage
-      DeploymentId: !Ref WebSocketDeployment
+      DeploymentId: !Ref Deployment
       ApiId: !Ref WebSocketApi
 
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: WebSocketConnections
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  OnConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: connect.lambda_handler
+      Runtime: python3.12
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+
+  OnConnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnConnectFunction
+      Principal: apigateway.amazonaws.com
+
+  OnDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: disconnect.lambda_handler
+      Runtime: python3.12
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ConnectionsTable
+
+  OnDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - WebSocketApi
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref OnDisconnectFunction
+      Principal: apigateway.amazonaws.com
+
+  BroadcastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: websocket/
+      Handler: broadcast.lambda_handler
+      Runtime: python3.12
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE: !Ref ConnectionsTable
+          GAMES_TABLE: !Ref GamesTable
+          LOBBIES_TABLE: !Ref LobbiesTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref ConnectionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref GamesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref LobbiesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'execute-api:ManageConnections'
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*'
 
   # AI EVALUATION ENDPOINTS
   AIEvaluationFunction:
@@ -832,10 +806,8 @@ Outputs:
     Export:
       Name: GamesTableName
   WebSocketApiEndpoint:
-    Description: "WebSocket API Endpoint"
-    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
-  ConnectionsTableName:
-    Description: "WebSocket Connections Table Name"
-    Value: !Ref WebSocketConnectionsTable
-    Export:
-      Name: WebSocketConnectionsTableName
+    Description: "WebSocket API endpoint"
+    Value: !Sub 'wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}'
+  BroadcastFunctionArn:
+    Description: "Broadcast Lambda Function ARN"
+    Value: !GetAtt BroadcastFunction.Arn

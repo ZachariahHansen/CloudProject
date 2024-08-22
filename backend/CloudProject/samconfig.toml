@@ -20,7 +20,7 @@ resolve_s3 = true
 s3_prefix = "CloudProject"
 region = "us-east-2"
 image_repositories = []
-parameter_overrides = "ConnectionsTable=\"WebSocketConnections\" AppRegion=\"us-east-2\""
+parameter_overrides = "AppRegion=\"us-east-2\""
 
 [default.package.parameters]
 resolve_s3 = true

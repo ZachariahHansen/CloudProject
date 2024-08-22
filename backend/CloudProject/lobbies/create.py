@@ -7,6 +7,7 @@ from datetime import datetime
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(os.environ.get('LOBBIES_TABLE', 'Lobbies'))
+lambda_client = boto3.client('lambda')
 
 def decimal_default(obj):
     if isinstance(obj, Decimal):
@@ -15,6 +16,21 @@ def decimal_default(obj):
 
 def deserialize_dynamodb_item(item):
     return json.loads(json.dumps(item, default=decimal_default))
+
+def invoke_broadcast(message_data):
+    payload = {
+        'body': json.dumps(message_data),
+        'requestContext': {
+            'domainName': os.environ['WEBSOCKET_API_DOMAIN'],
+            'stage': os.environ['WEBSOCKET_API_STAGE']
+        }
+    }
+    
+    lambda_client.invoke(
+        FunctionName=os.environ['BROADCAST_FUNCTION_NAME'],
+        InvocationType='Event',
+        Payload=json.dumps(payload)
+    )
 
 def lambda_handler(event, context):
     user_id = event['requestContext']['authorizer']['user_id']
@@ -43,6 +59,14 @@ def lambda_handler(event, context):
         put_item(item)
         
         response_body = deserialize_dynamodb_item(item)
+        
+        # Broadcast the lobby creation to all connected clients
+        invoke_broadcast({
+            'type': 'lobby_update',
+            'action': 'created',
+            'lobby_id': lobby_id,
+            'lobby_name': body['name']
+        })
         
         return {
             'statusCode': 201,
