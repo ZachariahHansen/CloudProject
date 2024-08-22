@@ -591,6 +591,21 @@ Resources:
           Properties:
             Path: /admin/prompts
             Method: get
+  ListOptionsPrompts:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: list_prompts.lambda_handler
+      Runtime: python3.12
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PromptsTable
+      Events:
+        ListPrompts:
+          Type: Api
+          Properties:
+            Path: /admin/prompts
+            Method: options
 
   GetRoundResults:
     Type: AWS::Serverless::Function

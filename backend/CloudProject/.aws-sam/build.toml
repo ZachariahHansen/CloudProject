@@ -35,7 +35,7 @@ architecture = "x86_64"
 handler = "create_prompt.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts"]
+functions = ["CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts", "ListOptionsPrompts"]
 
 [function_build_definitions.5b21a76a-0043-4229-9856-10f6acbf74e9]
 codeuri = "C:\\Users\\Draupniyr\\Desktop\\github\\cloud\\CloudProject\\backend\\CloudProject\\auth"
