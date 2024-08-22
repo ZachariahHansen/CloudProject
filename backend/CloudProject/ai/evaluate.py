@@ -35,6 +35,9 @@ def lambda_handler(event, context):
         for player_response in player_responses:
             player_id = player_response['player_id']
             response_text = player_response['response']
+            print("response_text found: ", response_text)
+            print("prompt found: ", prompt)
+            print("player_id found: ", player_id)
 
             # Prepare the messages for the ChatGPT API
             messages = [
@@ -46,7 +49,7 @@ Here's an example of the format I'm looking for:
 
 {{
     "explanation": "Ah, using a banana as a boomerang to knock out the hungry tiger? Creative, but fruitless. The tiger, amused by your potassium-powered projectile, decides you're too entertaining to eat. You live to go bananas another day!",
-    "survival": true
+    "status": "dead"
 }}
 
 Now, give me your evaluation for this player's response:
@@ -56,35 +59,54 @@ Scenario: {prompt}
 Player's response: {response_text}
 """}
             ]
-
+            print("calling chatgpt api")
             # Call the ChatGPT API
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
             data = {
-                "model": "gpt-4o-mini",  # or "gpt-4" if you have access
+                "model": "gpt-4o-mini",
                 "messages": messages,
                 "max_tokens": 200,
                 "temperature": 0.7
             }
-            response = http.request(
-                'POST',
+            print("going to call api now")
+            try:
+                response = http.request(
+                    'POST',
                 OPENAI_API_ENDPOINT,
                 body=json.dumps(data).encode('utf-8'),
-                headers=headers
-            )
+                    headers=headers
+                )
+            except Exception as e:
+                print(f"Error calling ChatGPT API: {e}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': 'Failed to call ChatGPT API'})
+                }
 
-            # Parse the API response
-            api_response = json.loads(response.data.decode('utf-8'))
-            ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
+            try:
+                print("response found: ", response)
+                # Parse the API response
+                api_response = json.loads(response.data.decode('utf-8'))
+                print("api_response found: ", api_response)
+                ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
+                print("ai_evaluation found: ", ai_evaluation)
+            except Exception as e:
+                print(f"Error parsing ChatGPT API response: {e}")
+                return {
+                    'statusCode': 500,
+                    'body': json.dumps({'error': 'Failed to parse ChatGPT API response'})
+                }
 
             # Add the result to the list
             results.append({
                 'player_id': player_id,
                 'explanation': ai_evaluation['explanation'],
-                'survival': ai_evaluation['survival']
+                'status': ai_evaluation['status']
             })
+            print("results found: ", results)
 
         # Update the game state in DynamoDB
         game = games_table.get_item(Key={'id': game_id})['Item']
@@ -94,9 +116,9 @@ Player's response: {response_text}
 
         for player in game['players']:
             player_result = next(r for r in results if r['player_id'] == player['id'])
-            player['survival'] = player_result['survival']
+            player['status'] = player_result['status']
             player['explanation'] = player_result['explanation']
-            player['rounds_survived'] = player.get('rounds_survived', 0) + (1 if player_result['survival'] else 0)
+            player['rounds_survived'] = player.get('rounds_survived', 0) + (1 if player_result['status'] else 0)
 
         if game['rounds_completed'] == 3:
             game['status'] = 'game_complete'

@@ -461,6 +461,11 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - AmazonDynamoDBFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt AIEvaluationFunction.Arn
       Events:
         SubmitResponse:
           Type: Api
@@ -470,6 +475,7 @@ Resources:
       Environment:
         Variables:
           GAMES_TABLE: !Ref GamesTable
+          AI_EVALUATION_FUNCTION: !Ref AIEvaluationFunction
 
 
 

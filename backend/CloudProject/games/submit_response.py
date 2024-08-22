@@ -3,10 +3,18 @@ import boto3
 import os
 from datetime import datetime
 import urllib3
+from decimal import Decimal
+from boto3.dynamodb.types import TypeDeserializer
 
 dynamodb = boto3.resource('dynamodb')
 games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
 lambda_client = boto3.client('lambda')
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 def lambda_handler(event, context):    
     try:
@@ -62,13 +70,17 @@ def lambda_handler(event, context):
                     for p in game['players']
                 ]
             }
+            print("line 66 hit")
             
             # Invoke AI evaluation Lambda function
+            ai_function_name = os.environ.get('AI_EVALUATION_FUNCTION')
             lambda_client.invoke(
-                FunctionName='AIEvaluationFunction',
+                FunctionName=ai_function_name,
                 InvocationType='Event',
-                Payload=json.dumps(evaluation_data)
+                Payload=json.dumps(evaluation_data, cls=DecimalEncoder)
             )
+            
+            print("lambda function invoked??")
 
         game['updated_at'] = datetime.utcnow().isoformat()
         games_table.put_item(Item=game)
