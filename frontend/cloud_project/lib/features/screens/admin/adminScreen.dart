@@ -21,37 +21,47 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
   }
 
   Future<void> fetchPrompts() async {
+  try {
     final token = await storage.read(key: 'jwt_token');
+    print('Fetching prompts with token: $token');
+    
     final response = await http.get(
-      Uri.parse('https://your-api-endpoint.com/admin/prompts'),
+      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts'),
       headers: {
         'Authorization': 'Bearer $token',
       },
     );
+
+    print('Response status: ${response.statusCode}');
+    print('Response body: ${response.body}');
 
     if (response.statusCode == 200) {
       setState(() {
         prompts = List<Map<String, dynamic>>.from(json.decode(response.body)['prompts']);
       });
     } else {
-      // Handle error
-      print('Failed to fetch prompts');
+      print('Failed to fetch prompts. Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
     }
+  } catch (e) {
+    print('Error fetching prompts: $e');
   }
+}
 
   Future<void> addPrompt() async {
     if (_newPromptController.text.isEmpty) return;
-
     final token = await storage.read(key: 'jwt_token');
+    print(token);
+    print("string before post request");
     final response = await http.post(
-      Uri.parse('https://your-api-endpoint.com/admin/prompts'),
+      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
       body: json.encode({'text': _newPromptController.text}),
     );
-
+    print("string after post request");
     if (response.statusCode == 201) {
       _newPromptController.clear();
       fetchPrompts();
@@ -66,7 +76,7 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
 
     final token = await storage.read(key: 'jwt_token');
     final response = await http.delete(
-      Uri.parse('https://your-api-endpoint.com/admin/prompts/$selectedPromptId'),
+      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts/$selectedPromptId'),
       headers: {
         'Authorization': 'Bearer $token',
       },

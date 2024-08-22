@@ -26,7 +26,7 @@ architecture = "x86_64"
 handler = "start.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["StartGame", "GetGameState", "GetRandomPrompt", "SubmitPrompt", "GetRoundResults"]
+functions = ["StartGame", "GetGameState", "SubmitResponse", "GetRandomPrompt", "SubmitPrompt", "GetRoundResults"]
 
 [function_build_definitions.8afea1ce-49da-4bf5-8e12-2e216b9d0655]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\auth"
@@ -62,7 +62,7 @@ architecture = "x86_64"
 handler = "create_prompt.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts"]
+functions = ["CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts", "ListOptionsPrompts"]
 
 [layer_build_definitions.49457a78-a56c-4d8b-b9cd-cba78ff19d3b]
 layer_name = "BcryptLayer"
