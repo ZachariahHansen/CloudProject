@@ -20,6 +20,7 @@ def lambda_handler(event, context):
         round_number = body['round_number']
         prompt = body['prompt']
         player_responses = body['player_responses']
+        print("player_responses found: ", player_responses)
 
         # Get the API key from environment variable
         api_key = os.environ['OPENAI_API_KEY']

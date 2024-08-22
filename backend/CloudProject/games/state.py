@@ -49,11 +49,19 @@ def lambda_handler(event, context):
         game = response['Item']
         
         # Check if the user is a participant in the game
-        if user_id not in game['players']:
+        # Players list object: [{'id': '543e48a4-a04f-470d-a54f-cfa91433034c', 'prompt': '', 'response': '', 'status': 'alive'}, {'id': '91e6ffb9-b00c-4dc8-ae63-407d1ee11a98', 'prompt': '', 'response': '', 'status': 'alive'}]
+        is_participant = False
+        for player in game['players']:
+            if player['id'] == user_id:
+                is_participant = True
+                break
+        
+        if not is_participant:
             return {
                 'statusCode': 403,
                 'body': json.dumps({'message': 'You are not a participant in this game'})
             }
+            
         
         # Prepare the response
         game_state = {
