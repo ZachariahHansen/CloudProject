@@ -29,6 +29,9 @@ Globals:
         JWT_SECRET: !Ref JWTSecret
         CONNECTIONS_TABLE: !Ref ConnectionsTable
         APP_REGION: !Ref AppRegion
+        #BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction CIRCULAR DEPENDENCY
+        WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+        WEBSOCKET_API_STAGE: Prod
     MemorySize: 128
     LoggingConfig:
       LogFormat: JSON
@@ -337,9 +340,17 @@ Resources:
         - AWSLambdaBasicExecutionRole
         - DynamoDBCrudPolicy:
             TableName: !Ref LobbiesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt BroadcastFunction.Arn
       Environment:
         Variables:
           LOBBIES_TABLE: !Ref LobbiesTable
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
       Events:
         JoinLobby:
           Type: Api
@@ -637,6 +648,7 @@ Resources:
         - '/'
         - - 'integrations'
           - !Ref ConnectInteg
+      RouteResponseSelectionExpression: $default
 
   ConnectInteg:
     Type: AWS::ApiGatewayV2::Integration
@@ -693,9 +705,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: connectionId
           AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
       KeySchema:
         - AttributeName: connectionId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       BillingMode: PAY_PER_REQUEST
 
   OnConnectFunction:
