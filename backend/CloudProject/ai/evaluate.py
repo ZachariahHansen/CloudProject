@@ -8,6 +8,7 @@ OPENAI_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
 dynamodb = boto3.resource('dynamodb')
 games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
+lambda_client = boto3.client('lambda')
 
 def lambda_handler(event, context):
     print("Received event:", json.dumps(event))
@@ -129,6 +130,9 @@ Player's response: {response_text}
 
         games_table.put_item(Item=game)
 
+        # Broadcast that AI evaluation is complete
+        broadcast_evaluation_complete(game_id, results, game['status'])
+
         # Prepare the response
         response = {
             'statusCode': 200,
@@ -148,3 +152,26 @@ Player's response: {response_text}
             'statusCode': 500,
             'body': json.dumps({'error': str(e)})
         }
+
+def broadcast_evaluation_complete(game_id, results, game_status):
+    try:
+        payload = {
+            'body': json.dumps({
+                'type': 'answers_evaluated',
+                'game_id': game_id,
+                'results': results,
+                'game_status': game_status
+            }),
+            'requestContext': {
+                'domainName': os.environ['WEBSOCKET_API_DOMAIN'],
+                'stage': os.environ['WEBSOCKET_API_STAGE']
+            }
+        }
+        
+        lambda_client.invoke(
+            FunctionName=os.environ['BROADCAST_FUNCTION_NAME'],
+            InvocationType='Event',
+            Payload=json.dumps(payload)
+        )
+    except Exception as e:
+        print(f"Error broadcasting evaluation complete: {str(e)}")

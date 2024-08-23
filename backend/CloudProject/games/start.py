@@ -7,6 +7,7 @@ from datetime import datetime
 dynamodb = boto3.resource('dynamodb')
 games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
 lobbies_table = dynamodb.Table(os.environ.get('LOBBIES_TABLE', 'Lobbies'))
+lambda_client = boto3.client('lambda')
 
 def lambda_handler(event, context):
     print(f"Received event: {json.dumps(event)}")
@@ -57,7 +58,6 @@ def lambda_handler(event, context):
             'current_round': 1,
             'total_rounds': 3,
             'status': 'in_progress',
-            #dont think we need this'current_prompt': None,
             'responses_submitted': 0,
             'created_at': current_time,
             'updated_at': current_time
@@ -71,6 +71,9 @@ def lambda_handler(event, context):
             ExpressionAttributeNames={'#status': 'status'},
             ExpressionAttributeValues={':status': 'in_game', ':game_id': game_id}
         )
+
+        # Broadcast game start to all players in the lobby
+        broadcast_game_start(lobby_id, game_id)
 
         return {
             'statusCode': 200,
@@ -87,3 +90,25 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'message': 'Internal server error'})
         }
+
+def broadcast_game_start(lobby_id, game_id):
+    try:
+        payload = {
+            'body': json.dumps({
+                'type': 'game_start',
+                'lobby_id': lobby_id,
+                'game_id': game_id
+            }),
+            'requestContext': {
+                'domainName': os.environ['WEBSOCKET_API_DOMAIN'],
+                'stage': os.environ['WEBSOCKET_API_STAGE']
+            }
+        }
+        
+        lambda_client.invoke(
+            FunctionName=os.environ['BROADCAST_FUNCTION_NAME'],
+            InvocationType='Event',
+            Payload=json.dumps(payload)
+        )
+    except Exception as e:
+        print(f"Error broadcasting game start: {str(e)}")

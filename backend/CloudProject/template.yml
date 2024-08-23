@@ -406,6 +406,11 @@ Resources:
       Policies:
         - AWSLambdaBasicExecutionRole
         - AmazonDynamoDBFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt BroadcastFunction.Arn
       Events:
         StartGame:
           Type: Api
@@ -416,6 +421,9 @@ Resources:
         Variables:
           LOBBIES_TABLE: !Ref LobbiesTable
           GAMES_TABLE: !Ref GamesTable
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
 
   GetGameState:
     Type: AWS::Serverless::Function
@@ -453,7 +461,9 @@ Resources:
             - Effect: Allow
               Action:
                 - 'lambda:InvokeFunction'
-              Resource: !GetAtt AIEvaluationFunction.Arn
+              Resource: 
+                - !GetAtt AIEvaluationFunction.Arn
+                - !GetAtt BroadcastFunction.Arn
       Events:
         SubmitResponse:
           Type: Api
@@ -464,6 +474,9 @@ Resources:
         Variables:
           GAMES_TABLE: !Ref GamesTable
           AI_EVALUATION_FUNCTION: !Ref AIEvaluationFunction
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
 
 
 
@@ -492,12 +505,23 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref GamesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt BroadcastFunction.Arn
       Events:
         SubmitPrompt:
           Type: Api
           Properties:
             Path: /games/{gameId}/prompts/submit
             Method: post
+      Environment:
+        Variables:
+          GAMES_TABLE: !Ref GamesTable
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
 
   # Admin CRUD operations for prompts
   CreatePrompt:
@@ -801,15 +825,23 @@ Resources:
           OPENAI_API_KEY: !Ref OpenAIApiKey
           GAMES_TABLE: !Ref GamesTable
           PROMPTS_TABLE: !Ref PromptsTable
+          BROADCAST_FUNCTION_NAME: !Ref BroadcastFunction
+          WEBSOCKET_API_DOMAIN: !Sub '${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com'
+          WEBSOCKET_API_STAGE: Prod
       Policies:
         - AWSLambdaBasicExecutionRole
         - AmazonDynamoDBFullAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - 'lambda:InvokeFunction'
+              Resource: !GetAtt BroadcastFunction.Arn
       Events:
         ApiEvent:
           Type: Api
           Properties:
             Path: /ai/evaluate
-            Method: post     
+            Method: post
 
 Outputs:
   AIEvaluationFunction:

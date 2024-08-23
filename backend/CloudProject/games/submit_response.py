@@ -2,9 +2,7 @@ import json
 import boto3
 import os
 from datetime import datetime
-import urllib3
 from decimal import Decimal
-from boto3.dynamodb.types import TypeDeserializer
 
 dynamodb = boto3.resource('dynamodb')
 games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
@@ -56,7 +54,9 @@ def lambda_handler(event, context):
         player['response'] = response
         game['responses_submitted'] += 1
 
-        if game['responses_submitted'] == len(game['players']):
+        all_responses_submitted = game['responses_submitted'] == len(game['players'])
+
+        if all_responses_submitted:
             # All players have submitted responses, trigger AI evaluation
             game['status'] = 'evaluating'
             
@@ -70,7 +70,6 @@ def lambda_handler(event, context):
                     for p in game['players']
                 ]
             }
-            print("line 66 hit")
             
             # Invoke AI evaluation Lambda function
             ai_function_name = os.environ.get('AI_EVALUATION_FUNCTION')
@@ -80,7 +79,8 @@ def lambda_handler(event, context):
                 Payload=json.dumps(evaluation_data, cls=DecimalEncoder)
             )
             
-            print("lambda function invoked??")
+            # Broadcast that all responses have been submitted
+            broadcast_all_responses_submitted(game_id)
 
         game['updated_at'] = datetime.utcnow().isoformat()
         games_table.put_item(Item=game)
@@ -89,7 +89,8 @@ def lambda_handler(event, context):
             'statusCode': 200,
             'body': json.dumps({
                 'message': 'Response submitted successfully',
-                'game_status': game['status']
+                'game_status': game['status'],
+                'all_responses_submitted': all_responses_submitted
             })
         }
 
@@ -99,3 +100,24 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps({'message': 'Internal server error'})
         }
+
+def broadcast_all_responses_submitted(game_id):
+    try:
+        payload = {
+            'body': json.dumps({
+                'type': 'all_answers_submitted',
+                'game_id': game_id
+            }),
+            'requestContext': {
+                'domainName': os.environ['WEBSOCKET_API_DOMAIN'],
+                'stage': os.environ['WEBSOCKET_API_STAGE']
+            }
+        }
+        
+        lambda_client.invoke(
+            FunctionName=os.environ['BROADCAST_FUNCTION_NAME'],
+            InvocationType='Event',
+            Payload=json.dumps(payload)
+        )
+    except Exception as e:
+        print(f"Error broadcasting all responses submitted: {str(e)}")
