@@ -4,18 +4,28 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:cloud_project/features/screens/game/prompt/selectPrompt.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 
 class LobbyPage extends StatefulWidget {
-  final String lobbyId;
-  final String userId;
+  final Map<String, dynamic> lobbyData;
 
-  const LobbyPage({Key? key, required this.lobbyId, required this.userId}) : super(key: key);
+  const LobbyPage({Key? key, required this.lobbyData}) : super(key: key);
 
   @override
   _LobbyPageState createState() => _LobbyPageState();
 }
 
 class _LobbyPageState extends State<LobbyPage> {
+  late String lobbyId;
+  late String lobbyName;
+  late String creatorId;
+  late int maxPlayers;
+  late int currentPlayers;
+  late String status;
+  late List<String> players;
+  late String createdAt;
+  late String baseUrl;
+  
   late WebSocketChannel _channel;
   List<Map<String, String>> _players = [];
   String _username = '';
@@ -24,33 +34,50 @@ class _LobbyPageState extends State<LobbyPage> {
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    lobbyId = widget.lobbyData['id'];
+    lobbyName = widget.lobbyData['name'];
+    creatorId = widget.lobbyData['creator_id'];
+    maxPlayers = widget.lobbyData['max_players'];
+    currentPlayers = widget.lobbyData['current_players'];
+    status = widget.lobbyData['status'];
+    players = List<String>.from(widget.lobbyData['players']);
+    createdAt = widget.lobbyData['created_at'];
+    _loadUrl();
+    _loadLobby();
     _connectWebSocket();
   }
 
-  Future<void> _loadUsername() async {
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    baseUrl = data['url'];
+  }
+
+  Future<void> _loadLobby() async {
     final username = await storage.read(key: 'username');
+    final userId = await storage.read(key: 'user_id');
     setState(() {
       _username = username ?? 'Unknown Player';
-      _players.add({'id': widget.userId, 'name': _username});
+      if (userId != null) {
+        _players.add({'id': userId, 'name': _username});
+      }
     });
   }
 
   void _connectWebSocket() {
-    // Replace with your actual WebSocket URL
     _channel = WebSocketChannel.connect(
-      Uri.parse('wss://g19wuss786.execute-api.us-east-2.amazonaws.com/Prod/@connect'),
+      // wss://qs0x2ysrh6.execute-api.us-east-2.amazonaws.com/Prod?userid={{userid}}
+      Uri.parse('wss://qs0x2ysrh6.execute-api.us-east-2.amazonaws.com/Prod?userid=${creatorId}'),
     );
 
     _channel.stream.listen((message) {
       final data = json.decode(message);
       if (data['type'] == 'playerList') {
         setState(() {
-          // Update the player list, but keep the current user
           _players = [
-            {'id': widget.userId, 'name': _username},
+            {'id': creatorId, 'name': _username},
             ...List<Map<String, String>>.from(data['players'])
-                .where((player) => player['id'] != widget.userId)
+                .where((player) => player['id'] != creatorId)
           ];
         });
       }
@@ -58,25 +85,26 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   void _startGame() {
-    // Implement game start logic
     _channel.sink.add(json.encode({
       'action': 'startGame',
-      'lobbyId': widget.lobbyId,
+      'lobbyId': lobbyId,
     }));
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => PromptSelectionPage(gameId: widget.lobbyId)),
+      MaterialPageRoute(builder: (context) => PromptSelectionPage(gameId: lobbyId)),
     );
   }
 
-  void _leaveLobby() {
-    // Implement leave lobby logic
-    _channel.sink.add(json.encode({
-      'action': 'leaveLobby',
-      'lobbyId': widget.lobbyId,
-      'userId': widget.userId,
-    }));
-    Navigator.of(context).pop(); // Return to previous screen
+  void _leaveLobby() async {
+    final userId = await storage.read(key: 'user_id');
+    if (userId != null) {
+      _channel.sink.add(json.encode({
+        'action': 'leaveLobby',
+        'lobbyId': lobbyId,
+        'userId': userId,
+      }));
+    }
+    Navigator.of(context).pop();
   }
 
   @override
@@ -89,11 +117,10 @@ class _LobbyPageState extends State<LobbyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Lobby: ${widget.lobbyId}'),
+        title: Text('Lobby: $lobbyName'),
       ),
       body: Row(
         children: [
-          // Left side - Player list
           Expanded(
             flex: 1,
             child: Card(
@@ -104,18 +131,21 @@ class _LobbyPageState extends State<LobbyPage> {
                   final player = _players[index];
                   return ListTile(
                     title: Text(player['name'] ?? 'Unknown Player'),
-                    trailing: player['id'] == widget.userId ? Text('(You)') : null,
+                    trailing: player['id'] == creatorId ? Text('(Creator)') : null,
                   );
                 },
               ),
             ),
           ),
-          // Right side - Buttons
           Expanded(
             flex: 1,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Text('Max Players: $maxPlayers'),
+                Text('Current Players: $currentPlayers'),
+                Text('Status: $status'),
+                SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _startGame,
                   child: Text('Start Game'),

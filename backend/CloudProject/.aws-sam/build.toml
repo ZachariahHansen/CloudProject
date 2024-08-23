@@ -53,7 +53,7 @@ architecture = "x86_64"
 handler = "connect.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["WebSocketConnectFunction", "WebSocketDisconnectFunction", "WebSocketDefaultFunction"]
+functions = ["OnConnectFunction", "OnDisconnectFunction", "BroadcastFunction"]
 
 [function_build_definitions.6b04cb21-4807-4bec-a8d6-0e4c1d2193bc]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\ai"

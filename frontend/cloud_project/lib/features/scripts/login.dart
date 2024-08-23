@@ -1,18 +1,34 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class LoginService {
   final String consulHost = 'consul';
   final int consulPort = 8500;
   final storage = FlutterSecureStorage();
+  String? baseUrl;
+
+  LoginService() {
+    _loadUrl();
+  }
+
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    baseUrl = data['url'];
+  }
 
   Future<int> login(String username, String password) async {
+    if (baseUrl == null) {
+      await _loadUrl();
+    }
+    print('Base URL: $baseUrl');
     try {
       print("Username: $username");
       print("Password: $password");
       final response = await http.post(
-        Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/users/login'),
+        Uri.parse('$baseUrl/users/login'),
         headers: {
           "Content-Type": "application/json"
         },
@@ -31,7 +47,7 @@ class LoginService {
         // Extract the token and other information
         final String token = responseData['token'];
         final String userId = responseData['user_id'];
-        final String isAdmin = responseData['is_admin'];
+        final bool isAdmin = responseData['is_admin'];
         
         // Save the token securely
         await storage.write(key: 'jwt_token', value: token);
@@ -46,7 +62,7 @@ class LoginService {
         await storage.write(key: 'is_admin', value: isAdmin.toString());
         
         // Return 2 for admin, 1 for regular user
-        if (isAdmin == 'True') {
+        if (isAdmin) {
           return 2;
         } else {
           return 1;

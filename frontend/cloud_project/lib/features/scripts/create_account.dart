@@ -1,10 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class AuthService {
-  final String apiUrl = 'https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod';
+  String apiUrl = '';
   final storage = FlutterSecureStorage();
+
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    apiUrl = data['url'];
+  }
 
   Future<Map<String, dynamic>> register({
     required String username,

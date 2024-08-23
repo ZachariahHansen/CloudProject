@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class AdminPromptManagementPage extends StatefulWidget {
   @override
@@ -13,11 +14,19 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
   String? selectedPromptId;
   final TextEditingController _newPromptController = TextEditingController();
   final storage = FlutterSecureStorage();
+  String apiUrl = '';
 
   @override
   void initState() {
     super.initState();
     fetchPrompts();
+    _loadUrl();
+  }
+
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    apiUrl = data['url'];
   }
 
   Future<void> fetchPrompts() async {
@@ -26,7 +35,7 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
     print('Fetching prompts with token: $token');
     
     final response = await http.get(
-      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts'),
+      Uri.parse(apiUrl+'admin/prompts'),
       headers: {
         'Authorization': 'Bearer $token',
       },

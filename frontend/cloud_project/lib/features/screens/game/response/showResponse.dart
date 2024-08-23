@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
 
 class PromptEvaluationPage extends StatefulWidget {
   final String gameId;
@@ -24,11 +25,19 @@ class _PromptEvaluationPageState extends State<PromptEvaluationPage> {
   bool isLoading = true;
   String? apiResponse;
   bool? survived;
+  late String baseUrl;
 
   @override
   void initState() {
     super.initState();
+    _loadUrl();
     _fetchEvaluation();
+  }
+
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    baseUrl = data['url'];
   }
 
   Future<void> _fetchEvaluation() async {

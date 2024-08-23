@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_project/features/screens/game/response/showResponse.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'dart:convert';
 
 class PromptResponsePage extends StatefulWidget {
   final String selectedPrompt;
@@ -18,11 +20,18 @@ class PromptResponsePage extends StatefulWidget {
 class _PromptResponsePageState extends State<PromptResponsePage> {
   final TextEditingController _responseController = TextEditingController();
   final int _maxCharacters = 200;
+  late String apiUrl;
 
   @override
   void dispose() {
     _responseController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUrl() async {
+    final String response = await rootBundle.loadString('lib/features/url.json');
+    final data = await json.decode(response);
+    apiUrl = data['url'];
   }
 
   void _submitResponse() {

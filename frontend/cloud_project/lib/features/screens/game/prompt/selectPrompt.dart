@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cloud_project/features/screens/game/prompt/responsePrompt.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class PromptSelectionPage extends StatefulWidget {
   final String gameId;
-
+  
   const PromptSelectionPage({Key? key, required this.gameId}) : super(key: key);
 
   @override
@@ -13,78 +15,124 @@ class PromptSelectionPage extends StatefulWidget {
 }
 
 class _PromptSelectionPageState extends State<PromptSelectionPage> {
-  List<String> prompts = [];
-  int? selectedPromptIndex;
+  String currentPrompt = "";
   bool isLoading = true;
-  List<Map<String, dynamic>> prompts_json = [];
-  String selectedPrompt = "";
+  late String baseUrl;
+  String errorMessage = "";
 
   @override
   void initState() {
     super.initState();
-    fetchPrompts();
+    _loadUrl();
+    fetchPrompt();
   }
 
-  Future<void> fetchPrompts() async {
+  Future<void> _loadUrl() async {
+    try {
+      final String response = await rootBundle.loadString('lib/features/url.json');
+      final data = await json.decode(response);
+      baseUrl = data['url'];
+    } catch (e) {
+      setState(() {
+        errorMessage = "Error loading URL: $e";
+      });
+    }
+  }
+
+  Map<String, dynamic> decodeJwt(String token) {
+    final parts = token.split('.');
+    if (parts.length != 3) {
+      throw Exception('Invalid token');
+    }
+
+    final payload = parts[1];
+    final normalized = base64Url.normalize(payload);
+    final resp = utf8.decode(base64Url.decode(normalized));
+    final payloadMap = json.decode(resp);
+
+    return payloadMap;
+  }
+
+  Future<void> fetchPrompt() async {
     setState(() {
       isLoading = true;
+      errorMessage = "";
     });
+    final storage = FlutterSecureStorage();
+    try {
+      final String? token = await storage.read(key: 'jwt_token');
+      if (token == null) {
+        throw Exception('JWT token not found');
+      }
 
-    prompts = [
-    "You're stranded on a deserted island. How do you survive and signal for rescue?",
-    "A time machine malfunctions, leaving you in the Middle Ages. How do you adapt and return to your time?",
-    "An alien spaceship lands in your backyard. How do you communicate and handle the situation?"
-  ];
-  isLoading = false;
+      // Decode and print JWT token contents
+      try {
+        final decodedToken = decodeJwt(token);
+        print("Decoded JWT token:");
+        print(json.encode(decodedToken));
+        
+        // Check expiration
+        final exp = decodedToken['exp'];
+        if (exp != null) {
+          final expirationDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          final now = DateTime.now();
+          print("Token expiration: $expirationDate");
+          print("Current time: $now");
+          if (expirationDate.isBefore(now)) {
+            print("Warning: Token has expired");
+          }
+        }
+      } catch (e) {
+        print("Error decoding JWT token: $e");
+      }
 
-    // try {
-    //   final response = await http.get(
-    //     Uri.parse('https://your-api-endpoint.com/games/${widget.gameId}/prompts/random'),
-    //     headers: {'Authorization': 'Bearer YOUR_AUTH_TOKEN'},
-    //   );
+      final String apiUrl = baseUrl+'games/${Uri.encodeComponent(widget.gameId)}/prompts/random';
+      print("API URL: $apiUrl");
+      print("JWT Token: $token");
 
-    //   if (response.statusCode == 200) {
-    //     final data = json.decode(response.body);
-    //     setState(() {
-    //       prompts = List<String>.from(data['prompts']);
-    //       isLoading = false;
-    //     });
-    //   } else {
-    //     throw Exception('Failed to load prompts');
-    //   }
-    // } catch (e) {
-    //   print('Error fetching prompts: $e');
-    //   setState(() {
-    //     isLoading = false;
-    //   });
-    // }
-  }
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-  void selectPrompt(int index) {
-    setState(() {
-      selectedPromptIndex = index;
-      selectedPrompt = prompts[index];
-    });
+      print("Response status code: ${response.statusCode}");
+      print("Response headers: ${response.headers}");
+      print("Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          currentPrompt = data['prompt_text'];
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load prompt: ${response.statusCode} ${response.reasonPhrase}');
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = "Error: $e";
+        isLoading = false;
+      });
+    }
   }
 
   void confirmSelection() {
-    if (selectedPromptIndex != null) {
-      // TODO: Implement API call to submit the selected prompt
-      print('Selected prompt: ${prompts[selectedPromptIndex!]}');
-      // Navigate to the next page
+    if (currentPrompt.isNotEmpty) {
       Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (context) => PromptResponsePage(
-      selectedPrompt: selectedPrompt,
-      // TODO: replace gameId later
-      gameId: "123123",
-    ),
-  ),
-);
+        context,
+        MaterialPageRoute(
+          builder: (context) => PromptResponsePage(
+            selectedPrompt: currentPrompt,
+            gameId: widget.gameId,
+          ),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a prompt')),
+        const SnackBar(content: Text('Please get a prompt first')),
       );
     }
   }
@@ -93,48 +141,42 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Select a Prompt'),
+        title: const Text('Prompt Selection'),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: prompts.length,
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () => selectPrompt(index),
-                        child: Card(
-                          color: selectedPromptIndex == index
-                              ? Theme.of(context).primaryColor.withOpacity(0.2)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              prompts[index],
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: selectedPromptIndex == index
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                const CircularProgressIndicator()
+              else if (errorMessage.isNotEmpty)
+                Text(
+                  errorMessage,
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                )
+              else
+                Text(
+                  currentPrompt,
+                  style: const TextStyle(fontSize: 18),
+                  textAlign: TextAlign.center,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed: confirmSelection,
-                    child: const Text('Confirm Selection'),
-                  ),
-                ),
-              ],
-            ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: fetchPrompt,
+                child: const Text('Get Another Prompt'),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: confirmSelection,
+                child: const Text('Confirm Selection'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
