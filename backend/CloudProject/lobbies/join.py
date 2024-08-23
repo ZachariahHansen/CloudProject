@@ -1,9 +1,11 @@
 import json
 import boto3
 from decimal import Decimal
+import os
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('Lobbies')
+lambda_client = boto3.client('lambda')
 
 def decimal_default(obj):
     if isinstance(obj, Decimal):
@@ -32,6 +34,9 @@ def lambda_handler(event, context):
                 'body': json.dumps('Lobby not found or full')
             }
         
+        # Broadcast the lobby update to all players in the lobby
+        broadcast_lobby_update(lobby_id, user_id)
+        
         return {
             'statusCode': 200,
             'body': json.dumps({
@@ -59,3 +64,26 @@ def join_lobby(lobby_id, user_id):
         ReturnValues='ALL_NEW'
     )
     return response.get('Attributes')
+
+def broadcast_lobby_update(lobby_id, new_player_id):
+    try:
+        print("gonna try and broadcast lobby update now")
+        payload = {
+            'body': json.dumps({
+                'type': 'lobby_players_update',
+                'lobby_id': lobby_id,
+                'new_player_id': new_player_id
+            }),
+            'requestContext': {
+                'domainName': os.environ['WEBSOCKET_API_DOMAIN'],
+                'stage': os.environ['WEBSOCKET_API_STAGE']
+            }
+        }
+        
+        lambda_client.invoke(
+            FunctionName=os.environ['BROADCAST_FUNCTION_NAME'],
+            InvocationType='Event',
+            Payload=json.dumps(payload)
+        )
+    except Exception as e:
+        print(f"Error broadcasting lobby update: {str(e)}")
