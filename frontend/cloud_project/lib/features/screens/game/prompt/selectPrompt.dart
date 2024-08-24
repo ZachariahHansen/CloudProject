@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:cloud_project/features/screens/game/prompt/responsePrompt.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class PromptSelectionPage extends StatefulWidget {
   final String gameId;
@@ -19,12 +20,14 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
   bool isLoading = true;
   late String baseUrl;
   String errorMessage = "";
+  late WebSocketChannel _channel;
 
   @override
   void initState() {
     super.initState();
     _loadUrl();
     fetchPrompt();
+    _initializeWebSocket();
   }
 
   Future<void> _loadUrl() async {
@@ -37,6 +40,27 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
         errorMessage = "Error loading URL: $e";
       });
     }
+  }
+
+  Future<void> _initializeWebSocket() async {
+    final storage = FlutterSecureStorage();
+    final userId = await storage.read(key: 'user_id');
+    final wsUrl = 'wss://qs0x2ysrh6.execute-api.us-east-2.amazonaws.com/Prod?user_id=$userId';
+    _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+
+    _channel.stream.listen((message) {
+      final data = json.decode(message);
+      if (data['type'] == 'scenario_selected' && data['game_id'] == widget.gameId) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PromptResponsePage(
+              gameId: widget.gameId,
+            ),
+          ),
+        );
+      }
+    });
   }
 
   Map<String, dynamic> decodeJwt(String token) {
@@ -65,30 +89,7 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
         throw Exception('JWT token not found');
       }
 
-      // Decode and print JWT token contents
-      try {
-        final decodedToken = decodeJwt(token);
-        print("Decoded JWT token:");
-        print(json.encode(decodedToken));
-        
-        // Check expiration
-        final exp = decodedToken['exp'];
-        if (exp != null) {
-          final expirationDate = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
-          final now = DateTime.now();
-          print("Token expiration: $expirationDate");
-          print("Current time: $now");
-          if (expirationDate.isBefore(now)) {
-            print("Warning: Token has expired");
-          }
-        }
-      } catch (e) {
-        print("Error decoding JWT token: $e");
-      }
-
-      final String apiUrl = baseUrl+'games/${Uri.encodeComponent(widget.gameId)}/prompts/random';
-      print("API URL: $apiUrl");
-      print("JWT Token: $token");
+      final String apiUrl = baseUrl + 'games/${Uri.encodeComponent(widget.gameId)}/prompts/random';
 
       final response = await http.get(
         Uri.parse(apiUrl),
@@ -97,10 +98,6 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
           'Authorization': 'Bearer $token',
         },
       );
-
-      print("Response status code: ${response.statusCode}");
-      print("Response headers: ${response.headers}");
-      print("Response body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -119,22 +116,66 @@ class _PromptSelectionPageState extends State<PromptSelectionPage> {
     }
   }
 
-  void confirmSelection() {
-    if (currentPrompt.isNotEmpty) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => PromptResponsePage(
-            selectedPrompt: currentPrompt,
-            gameId: widget.gameId,
-          ),
-        ),
-      );
-    } else {
+  Future<void> confirmSelection() async {
+    if (currentPrompt.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please get a prompt first')),
       );
+      return;
     }
+
+    setState(() {
+      isLoading = true;
+      errorMessage = "";
+    });
+
+    final storage = FlutterSecureStorage();
+  try {
+    final String? token = await storage.read(key: 'jwt_token');
+    if (token == null) {
+      throw Exception('JWT token not found');
+    }
+
+    final String apiUrl = baseUrl + 'games/${Uri.encodeComponent(widget.gameId)}/prompts/submit';
+    print('Submitting prompt to: $apiUrl');
+
+    final requestBody = json.encode({
+      'prompt_text': currentPrompt,  // Changed from 'prompt' to 'prompt_text'
+    });
+    print('Request body: $requestBody');
+
+    final response = await http.post(
+      Uri.parse(apiUrl),
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer $token',
+      },
+      body: requestBody,
+    );
+
+    print('Response status code: ${response.statusCode}');
+    print('Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('Prompt submitted successfully');
+      // The WebSocket will handle navigation to the next page
+    } else {
+      final responseBody = json.decode(response.body);
+      throw Exception('Failed to submit prompt: ${response.statusCode} ${response.reasonPhrase}\nServer message: ${responseBody['message']}');
+    }
+  } catch (e) {
+    print('Error in confirmSelection: $e');
+    setState(() {
+      errorMessage = "Error submitting prompt: $e";
+      isLoading = false;
+    });
+  }
+}
+
+  @override
+  void dispose() {
+    _channel.sink.close();
+    super.dispose();
   }
 
   @override
