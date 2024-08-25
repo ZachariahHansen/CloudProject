@@ -6,6 +6,18 @@ dynamodb = boto3.resource('dynamodb')
 games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
 lambda_client = boto3.client('lambda')
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):
     try:
         game_id = event['pathParameters']['gameId']
@@ -23,16 +35,10 @@ def lambda_handler(event, context):
         # Broadcast prompt selection to all players in the game
         broadcast_prompt_selection(game_id, prompt_text)
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps({'message': 'Prompt submitted successfully'})
-        }
+        return response(200, {'message': 'Prompt submitted successfully'})
     except Exception as e:
         print(f"Error: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'message': 'Internal server error'})
-        }
+        return response(500, {'message': 'Internal server error'})
 
 def broadcast_prompt_selection(game_id, prompt_text):
     try:

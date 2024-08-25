@@ -249,6 +249,241 @@ Resources:
           Properties:
             Path: /users
             Method: delete
+  GetUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: get.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref UsersTable
+      Environment:
+        Variables:
+          USERS_TABLE: !Ref UsersTable
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/{userId}
+            Method: get
+  
+  # options for CORS
+
+  OptionsUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: login.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsUserById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: users/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsUserById:
+          Type: Api
+          Properties:
+            Path: /users/{userId}
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsLobbies:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsLobbies:
+          Type: Api
+          Properties:
+            Path: /lobbies
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsLobbyById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsLobbyById:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsJoinLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsJoinLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/join
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsLeaveLobby:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lobbies/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsLeaveLobby:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/leave
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsStartGame:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsStartGame:
+          Type: Api
+          Properties:
+            Path: /lobbies/{lobbyId}/start
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsGameState:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsGameState:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsSubmitResponse:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsSubmitResponse:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/responses/submit
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsRandomPrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsRandomPrompt:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/prompts/random
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsSubmitPrompt:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsSubmitPrompt:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/prompts/submit
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+
+  OptionsAdminPromptById:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: admin/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsAdminPromptById:
+          Type: Api
+          Properties:
+            Path: /admin/prompts/{promptId}
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsRoundResults:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: games/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsRoundResults:
+          Type: Api
+          Properties:
+            Path: /games/{gameId}/results
+            Method: options
+            Auth:
+              Authorizer: NONE
+
+  OptionsAIEvaluate:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ai/
+      Handler: options.lambda_handler
+      Runtime: python3.12
+      Events:
+        OptionsAIEvaluate:
+          Type: Api
+          Properties:
+            Path: /ai/evaluate
+            Method: options
+            Auth:
+              Authorizer: NONE
+  
 
   BcryptLayer:
     Type: AWS::Serverless::LayerVersion

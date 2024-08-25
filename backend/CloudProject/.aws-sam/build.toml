@@ -8,36 +8,45 @@ architecture = "x86_64"
 handler = "register.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["RegisterUser", "RegisterOptionsUser", "LoginUser", "LoginOptionsUser", "PutUser", "DeleteUser"]
+functions = ["RegisterUser", "RegisterOptionsUser", "LoginUser", "LoginOptionsUser", "PutUser", "DeleteUser", "GetUser", "OptionsUser", "OptionsUserById"]
 
-[function_build_definitions.eb5dbc4c-f052-47e1-a514-dc65f25e2114]
+[function_build_definitions.7281a5ea-2676-498e-910b-ef9b0397267a]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\lobbies"
 runtime = "python3.12"
 architecture = "x86_64"
-handler = "create.lambda_handler"
+handler = "options.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["CreateLobby", "ListLobbies", "GetLobbyDetails", "JoinLobby", "LeaveLobby", "DeleteLobby"]
+functions = ["OptionsLobbies", "OptionsLobbyById", "OptionsJoinLobby", "OptionsLeaveLobby", "CreateLobby", "ListLobbies", "GetLobbyDetails", "JoinLobby", "LeaveLobby", "DeleteLobby"]
 
-[function_build_definitions.6b656875-2fef-4695-bc75-010e574c9cc6]
+[function_build_definitions.a2344b05-2a96-4491-81a8-63ec72b67468]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\games"
 runtime = "python3.12"
 architecture = "x86_64"
-handler = "start.lambda_handler"
+handler = "options.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["StartGame", "GetGameState", "SubmitResponse", "GetRandomPrompt", "SubmitPrompt", "GetRoundResults"]
+functions = ["OptionsStartGame", "OptionsGameState", "OptionsSubmitResponse", "OptionsRandomPrompt", "OptionsSubmitPrompt", "OptionsRoundResults", "StartGame", "GetGameState", "SubmitResponse", "GetRandomPrompt", "SubmitPrompt", "GetRoundResults"]
 
-[function_build_definitions.a999355c-5bbe-4eb2-a858-5f213760a847]
+[function_build_definitions.7991b622-85cc-48ff-bcc5-43afd484f1dc]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\admin"
 runtime = "python3.12"
 architecture = "x86_64"
-handler = "create_prompt.lambda_handler"
+handler = "options.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts", "ListOptionsPrompts"]
+functions = ["OptionsAdminPromptById", "CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts", "ListOptionsPrompts"]
 
-[function_build_definitions.26ebd0d2-1433-44c6-8691-49dab1488880]
+[function_build_definitions.c02a716f-bcb9-4756-a6de-b16ffc5919fa]
+codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\ai"
+runtime = "python3.12"
+architecture = "x86_64"
+handler = "options.lambda_handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["OptionsAIEvaluate", "AIEvaluationFunction"]
+
+[function_build_definitions.a75d907d-4382-4055-999d-d4b8b5648713]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\auth"
 runtime = "python3.12"
 architecture = "x86_64"
@@ -46,7 +55,7 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["AuthorizerFunction"]
 
-[function_build_definitions.b9bc3009-81f8-44fb-bbfc-245600b26270]
+[function_build_definitions.cf2b975e-f3e8-4cfd-b6f2-c5dd9a0c0569]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\websocket"
 runtime = "python3.12"
 architecture = "x86_64"
@@ -55,16 +64,7 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["OnConnectFunction", "OnDisconnectFunction", "BroadcastFunction"]
 
-[function_build_definitions.6b04cb21-4807-4bec-a8d6-0e4c1d2193bc]
-codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\ai"
-runtime = "python3.12"
-architecture = "x86_64"
-handler = "evaluate.lambda_handler"
-manifest_hash = ""
-packagetype = "Zip"
-functions = ["AIEvaluationFunction"]
-
-[layer_build_definitions.cfd854ac-a195-479f-8263-2d2f96ae3e26]
+[layer_build_definitions.f978a870-ccc0-4043-b4eb-5903f9433c62]
 layer_name = "BcryptLayer"
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\bcrypt_layer"
 build_method = "python3.12"

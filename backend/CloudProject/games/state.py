@@ -13,14 +13,23 @@ class DecimalEncoder(json.JSONEncoder):
             return float(obj)
         return super(DecimalEncoder, self).default(obj)
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body, cls=DecimalEncoder)
+    }
+
 def lambda_handler(event, context):
-    # Log the entire event for debugging
     print("Received event:", json.dumps(event))
 
-    # Extract game_id from the path parameters
     game_id = event['pathParameters']['gameId']
     
-    # Try to extract user_id from the authorizer context
     user_id = None
     if 'requestContext' in event and 'authorizer' in event['requestContext']:
         authorizer = event['requestContext']['authorizer']
@@ -31,39 +40,21 @@ def lambda_handler(event, context):
                 user_id = authorizer.get('user_id')
 
     if not user_id:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'message': 'Unable to retrieve user ID from authorizer', 'event': event})
-        }
+        return response(400, {'message': 'Unable to retrieve user ID from authorizer', 'event': event})
 
     try:
-        # Retrieve the game from DynamoDB
-        response = games_table.get_item(Key={'id': game_id})
+        game_response = games_table.get_item(Key={'id': game_id})
         
-        if 'Item' not in response:
-            return {
-                'statusCode': 404,
-                'body': json.dumps({'message': 'Game not found'})
-            }
+        if 'Item' not in game_response:
+            return response(404, {'message': 'Game not found'})
         
-        game = response['Item']
+        game = game_response['Item']
         
-        # Check if the user is a participant in the game
-        # Players list object: [{'id': '543e48a4-a04f-470d-a54f-cfa91433034c', 'prompt': '', 'response': '', 'status': 'alive'}, {'id': '91e6ffb9-b00c-4dc8-ae63-407d1ee11a98', 'prompt': '', 'response': '', 'status': 'alive'}]
-        is_participant = False
-        for player in game['players']:
-            if player['id'] == user_id:
-                is_participant = True
-                break
+        is_participant = any(player['id'] == user_id for player in game['players'])
         
         if not is_participant:
-            return {
-                'statusCode': 403,
-                'body': json.dumps({'message': 'You are not a participant in this game'})
-            }
-            
+            return response(403, {'message': 'You are not a participant in this game'})
         
-        # Prepare the response
         game_state = {
             'id': game['id'],
             'status': game['status'],
@@ -74,14 +65,8 @@ def lambda_handler(event, context):
             'timer': game.get('timer', None)
         }
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps(game_state, cls=DecimalEncoder)
-        }
+        return response(200, game_state)
     
     except ClientError as e:
         print(e.response['Error']['Message'])
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'message': 'Internal server error'})
-        }
+        return response(500, {'message': 'Internal server error'})

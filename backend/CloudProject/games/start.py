@@ -9,6 +9,18 @@ games_table = dynamodb.Table(os.environ.get('GAMES_TABLE', 'Games'))
 lobbies_table = dynamodb.Table(os.environ.get('LOBBIES_TABLE', 'Lobbies'))
 lambda_client = boto3.client('lambda')
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):
     print(f"Received event: {json.dumps(event)}")
 
@@ -20,26 +32,17 @@ def lambda_handler(event, context):
 
         if not user_id:
             print("Unable to find user_id in the authorizer context")
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'message': 'User ID not found in request'})
-            }
+            return response(400, {'message': 'User ID not found in request'})
 
         print(f"User ID: {user_id}")
 
         lobby = lobbies_table.get_item(Key={'id': lobby_id})['Item']
 
         if lobby['creator_id'] != user_id:
-            return {
-                'statusCode': 403,
-                'body': json.dumps({'message': 'Only the lobby creator can start the game'})
-            }
+            return response(403, {'message': 'Only the lobby creator can start the game'})
 
         if len(lobby['players']) < 2:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({'message': 'At least 2 players are required to start the game'})
-            }
+            return response(400, {'message': 'At least 2 players are required to start the game'})
 
         game_id = str(uuid.uuid4())
         current_time = datetime.utcnow().isoformat()
@@ -75,21 +78,15 @@ def lambda_handler(event, context):
         # Broadcast game start to all players in the lobby
         broadcast_game_start(lobby_id, game_id)
 
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'Game started successfully',
-                'game_id': game_id,
-                'status': 'in_progress'
-            })
-        }
+        return response(200, {
+            'message': 'Game started successfully',
+            'game_id': game_id,
+            'status': 'in_progress'
+        })
 
     except Exception as e:
         print(f"Error: {str(e)}")
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'message': 'Internal server error'})
-        }
+        return response(500, {'message': 'Internal server error'})
 
 def broadcast_game_start(lobby_id, game_id):
     try:

@@ -32,14 +32,23 @@ def invoke_broadcast(message_data):
         Payload=json.dumps(payload)
     )
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):
     user_id = event['requestContext']['authorizer']['user_id']
     if not user_id:
         print("user_id not found, hit create lobby")
-        return {
-            'statusCode': 401,
-            'body': json.dumps({'message': 'Unauthorized'})
-        }
+        return response(401, {'message': 'Unauthorized'})
 
     try:
         body = json.loads(event['body'])
@@ -68,20 +77,11 @@ def lambda_handler(event, context):
             'lobby_name': body['name']
         })
         
-        return {
-            'statusCode': 201,
-            'body': json.dumps(response_body)
-        }
+        return response(201, response_body)
     except KeyError:
-        return {
-            'statusCode': 400,
-            'body': json.dumps({'message': 'Invalid request body'})
-        }
+        return response(400, {'message': 'Invalid request body'})
     except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'message': f'Error creating lobby: {str(e)}'})
-        }
+        return response(500, {'message': f'Error creating lobby: {str(e)}'})
 
 def put_item(item):
     table.put_item(Item=item)

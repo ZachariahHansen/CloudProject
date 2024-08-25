@@ -7,6 +7,18 @@ dynamodb = boto3.resource('dynamodb')
 lobbies_table = dynamodb.Table(os.environ['LOBBIES_TABLE'])
 lambda_client = boto3.client('lambda')
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):
     body = json.loads(event['body'])
     lobby_id = event['pathParameters']['lobbyId']
@@ -15,7 +27,7 @@ def lambda_handler(event, context):
 
     try:
         # Update Lobbies table
-        response = lobbies_table.update_item(
+        lobbies_table.update_item(
             Key={'id': lobby_id},
             UpdateExpression='SET players = list_append(if_not_exists(players, :empty_list), :new_player)',
             ExpressionAttributeValues={
@@ -38,12 +50,6 @@ def lambda_handler(event, context):
             })
         )
 
-        return {
-            'statusCode': 200,
-            'body': json.dumps('Joined lobby successfully')
-        }
+        return response(200, 'Joined lobby successfully')
     except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error joining lobby: {str(e)}')
-        }
+        return response(500, f'Error joining lobby: {str(e)}')

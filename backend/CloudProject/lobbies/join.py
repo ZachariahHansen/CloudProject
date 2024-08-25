@@ -15,13 +15,22 @@ def decimal_default(obj):
 def deserialize_dynamodb_item(item):
     return json.loads(json.dumps(item, default=decimal_default))
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):
     user_id = event['requestContext']['authorizer']['principalId']
     if not user_id:
-        return {
-            'statusCode': 401,
-            'body': json.dumps('Unauthorized')
-        }
+        return response(401, 'Unauthorized')
 
     try:
         lobby_id = event['pathParameters']['lobbyId']
@@ -29,26 +38,17 @@ def lambda_handler(event, context):
         updated_lobby = join_lobby(lobby_id, user_id)
         
         if not updated_lobby:
-            return {
-                'statusCode': 404,
-                'body': json.dumps('Lobby not found or full')
-            }
+            return response(404, 'Lobby not found or full')
         
         # Broadcast the lobby update to all players in the lobby
         broadcast_lobby_update(lobby_id, user_id)
         
-        return {
-            'statusCode': 200,
-            'body': json.dumps({
-                'message': 'Successfully joined the lobby',
-                'lobby': deserialize_dynamodb_item(updated_lobby)
-            })
-        }
+        return response(200, {
+            'message': 'Successfully joined the lobby',
+            'lobby': deserialize_dynamodb_item(updated_lobby)
+        })
     except Exception as e:
-        return {
-            'statusCode': 500,
-            'body': json.dumps(f'Error joining lobby: {str(e)}')
-        }
+        return response(500, f'Error joining lobby: {str(e)}')
 
 def join_lobby(lobby_id, user_id):
     response = table.update_item(

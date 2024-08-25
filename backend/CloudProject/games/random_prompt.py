@@ -7,23 +7,27 @@ dynamodb = boto3.resource('dynamodb')
 prompts_table = dynamodb.Table('Prompts')
 games_table = dynamodb.Table('Games')
 
+def response(status_code, body):
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+            'Access-Control-Allow-Methods': 'OPTIONS,GET'
+        },
+        'body': json.dumps(body)
+    }
+
 def lambda_handler(event, context):    
     # Get all prompts
-    response = prompts_table.scan()
-    prompts = response['Items']
+    prompts_response = prompts_table.scan()
+    prompts = prompts_response['Items']
     
     if not prompts:
-        return {
-            'statusCode': 404,
-            'body': json.dumps({'message': 'No prompts available'})
-        }
+        return response(404, {'message': 'No prompts available'})
     
     # Select a random prompt
     random_prompt = random.choice(prompts)
     
-    return {
-        'statusCode': 200,
-        'body': json.dumps({
-            'prompt_text': random_prompt['text']
-        })
-    }
+    return response(200, {'prompt_text': random_prompt['text']})
