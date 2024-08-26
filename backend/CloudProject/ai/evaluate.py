@@ -60,45 +60,39 @@ Scenario: {prompt}
 Player's response: {response_text}
 """}
             ]
-            print("calling chatgpt api")
-            # Call the ChatGPT API
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            data = {
-                "model": "gpt-4o-mini",
-                "messages": messages,
-                "max_tokens": 200,
-                "temperature": 0.7
-            }
             print("going to call api now")
-            try:
-                response = http.request(
-                    'POST',
-                OPENAI_API_ENDPOINT,
-                body=json.dumps(data).encode('utf-8'),
-                    headers=headers
-                )
-            except Exception as e:
-                print(f"Error calling ChatGPT API: {e}")
+            
+            max_retries = 6
+            retry_count = 0
+            while retry_count < max_retries:
+                try:
+                    response = http.request(
+                        'POST',
+                        OPENAI_API_ENDPOINT,
+                        body=json.dumps(data).encode('utf-8'),
+                        headers=headers
+                    )
+                    
+                    # Try to parse the API response
+                    api_response = json.loads(response.data.decode('utf-8'))
+                    ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
+                    print("ai_evaluation found: ", ai_evaluation)
+                    
+                    # If we get here, the response was valid JSON
+                    break
+                    
+                except json.JSONDecodeError:
+                    print(f"Attempt {retry_count + 1}: Invalid JSON response. Retrying...")
+                    retry_count += 1
+                except Exception as e:
+                    print(f"Error calling or parsing ChatGPT API response: {e}")
+                    retry_count += 1
+            
+            if retry_count == max_retries:
+                print("Max retries reached. Unable to get a valid response from the API.")
                 return {
                     'statusCode': 500,
-                    'body': json.dumps({'error': 'Failed to call ChatGPT API'})
-                }
-
-            try:
-                print("response found: ", response)
-                # Parse the API response
-                api_response = json.loads(response.data.decode('utf-8'))
-                print("api_response found: ", api_response)
-                ai_evaluation = json.loads(api_response['choices'][0]['message']['content'])
-                print("ai_evaluation found: ", ai_evaluation)
-            except Exception as e:
-                print(f"Error parsing ChatGPT API response: {e}")
-                return {
-                    'statusCode': 500,
-                    'body': json.dumps({'error': 'Failed to parse ChatGPT API response'})
+                    'body': json.dumps({'error': 'Failed to get a valid response from ChatGPT API after multiple attempts'})
                 }
 
             # Add the result to the list
