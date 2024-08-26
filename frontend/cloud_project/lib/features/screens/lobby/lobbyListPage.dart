@@ -37,10 +37,9 @@ class _LobbyListPageState extends State<LobbyListPage> {
 
   Future<void> _initializeWebSocket() async {
     final String? userId = await storage.read(key: 'user_id');
-    final wsUrl = 'wss://qs0x2ysrh6.execute-api.us-east-2.amazonaws.com/Prod?user_id=$userId'; // Replace with your WebSocket URL
+    final wsUrl = 'wss://qs0x2ysrh6.execute-api.us-east-2.amazonaws.com/Prod?user_id=$userId';
     channel = WebSocketChannel.connect(Uri.parse(wsUrl));
     channel.stream.listen((message) {
-      // When a message is received, refresh the lobbies
       fetchLobbies();
     });
   }
@@ -105,7 +104,6 @@ class _LobbyListPageState extends State<LobbyListPage> {
       Map<String, dynamic> responseData = jsonDecode(response.body);
       Map<String, dynamic> lobbyData = responseData['lobby'];
 
-      // Convert all values in lobbyData to the correct types
       lobbyData = {
         'id': lobbyData['id'] as String,
         'name': lobbyData['name'] as String,
@@ -119,17 +117,117 @@ class _LobbyListPageState extends State<LobbyListPage> {
 
       Navigator.push(context, MaterialPageRoute(builder: (context) => LobbyPage(lobbyData: lobbyData)));
     } else {
-      // Handle error
       print('Failed to join lobby: ${response.statusCode}');
-      // You might want to show an error message to the user here
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to join lobby. Please try again.')),
+      );
     }
   }
 
+  Future<Map<String, dynamic>> createLobby(String name, int maxPlayers) async {
+    final String apiUrl = baseUrl + 'lobbies';
 
-  Future<void> createLobby() async {
-    // Implement lobby creation logic here
-    print('Creating new lobby');
-    await fetchLobbies();
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer ${await storage.read(key: 'jwt_token')}',
+        },
+        body: jsonEncode(<String, dynamic>{
+          'name': name,
+          'max_players': maxPlayers,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to create lobby: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error creating lobby: $e');
+    }
+  }
+
+  void _showCreateLobbyDialog(BuildContext context) {
+    String lobbyName = '';
+    int maxPlayers = 2;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Create Lobby'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    decoration: InputDecoration(labelText: 'Lobby Name'),
+                    onChanged: (value) {
+                      lobbyName = value;
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  Text('Max Players: $maxPlayers'),
+                  Slider(
+                    value: maxPlayers.toDouble(),
+                    min: 2,
+                    max: 22,
+                    divisions: 20,
+                    label: maxPlayers.round().toString(),
+                    onChanged: (double value) {
+                      setState(() {
+                        maxPlayers = value.round();
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                ElevatedButton(
+                  child: Text('Create'),
+                  onPressed: () async {
+                    if (lobbyName.isNotEmpty) {
+                      try {
+                        var lobbyData = await createLobby(lobbyName, maxPlayers);
+                        final userId = await storage.read(key: 'user_id');
+                        
+                        if (userId != null) {
+                          Navigator.of(context).pop(); // Close the dialog
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LobbyPage(lobbyData: lobbyData),
+                            ),
+                          );
+                        } else {
+                          throw Exception('User ID not found');
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error creating lobby: $e')),
+                        );
+                      }
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Please enter a lobby name')),
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -170,7 +268,7 @@ class _LobbyListPageState extends State<LobbyListPage> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: createLobby,
+        onPressed: () => _showCreateLobbyDialog(context),
         child: Icon(Icons.add),
         tooltip: 'Create Lobby',
       ),

@@ -63,10 +63,10 @@ def lambda_handler(event, context):
         return response(500, f"Error inserting into DynamoDB: {str(e)}")
 
     # Send verification email
-    try:
-        send_verification_email(email_address, verification_token)
-    except Exception as e:
-        return response(500, f"Error sending verification email: {str(e)}")
+    # try:
+    #     send_verification_email(email_address, verification_token)
+    # except Exception as e:
+    #     return response(500, f"Error sending verification email: {str(e)}")
 
     # Generate JWT token
     token = generate_jwt_token(Id)
