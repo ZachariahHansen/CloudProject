@@ -36,7 +36,7 @@ class AuthService {
         return {'success': false, 'message': passwordError};
       }
 
-      _loadUrl();
+      await _loadUrl();
 
       final response = await http.post(
         Uri.parse('$apiUrl/users/register'),

@@ -63,7 +63,7 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
     print(token);
     print("string before post request");
     final response = await http.post(
-      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts'),
+      Uri.parse(apiUrl+'admin/prompts'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ class _AdminPromptManagementPageState extends State<AdminPromptManagementPage> {
 
     final token = await storage.read(key: 'jwt_token');
     final response = await http.delete(
-      Uri.parse('https://3iqlyib94m.execute-api.us-east-2.amazonaws.com/Prod/admin/prompts/$selectedPromptId'),
+      Uri.parse(apiUrl+'admin/prompts/$selectedPromptId'),
       headers: {
         'Authorization': 'Bearer $token',
       },

@@ -35,7 +35,7 @@ architecture = "x86_64"
 handler = "options.lambda_handler"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["OptionsAdminPromptById", "CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts", "ListOptionsPrompts"]
+functions = ["OptionsAdmin", "OptionsAdminPromptById", "CreatePrompt", "GetPrompt", "UpdatePrompt", "DeletePrompt", "ListPrompts"]
 
 [function_build_definitions.c02a716f-bcb9-4756-a6de-b16ffc5919fa]
 codeuri = "C:\\Users\\zhansen\\OneDrive - Neumont College of Computer Science\\Documents\\Neumont\\2 Second Year\\4-summer\\pro305-cloud\\backend\\CloudProject\\ai"
