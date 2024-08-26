@@ -60,6 +60,18 @@ Scenario: {prompt}
 Player's response: {response_text}
 """}
             ]
+            print("calling chatgpt api")
+            # Call the ChatGPT API with retry logic
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": messages,
+                "max_tokens": 200,
+                "temperature": 0.7
+            }
             print("going to call api now")
             
             max_retries = 6
