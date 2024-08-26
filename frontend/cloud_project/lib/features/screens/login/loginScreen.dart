@@ -10,7 +10,7 @@ class LogInPage extends StatelessWidget {
 
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Colors.teal.shade100,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         body: Center(
           child: Container(
             padding: EdgeInsets.all(20),

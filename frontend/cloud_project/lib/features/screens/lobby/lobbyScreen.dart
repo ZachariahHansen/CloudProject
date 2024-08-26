@@ -72,13 +72,14 @@ class _LobbyPageState extends State<LobbyPage> {
     _channel.stream.listen((message) {
       print(message);
       final data = json.decode(message);
-      if (data['type'] == 'lobby_update' && data['game_id'] == gameId) {
+      if (data['type'] == 'lobby_update') {
         fetchPlayers();
       } else if (data['type'] == 'select_prompt' && data['game_id'] == gameId) {
         print('Received prompt selection message');
         _navigateToPromptSelection();
       }
-      else if (data['type'] == 'waiting_for_prompt' && data['game_id'] == gameId) {
+      else if (data['type'] == 'waiting_for_prompt') {
+        gameId = data['game_id'];
         print('Received leave lobby message');
         _navigateToWaitingPage();
       }
@@ -86,6 +87,7 @@ class _LobbyPageState extends State<LobbyPage> {
   }
 
   Future<void> fetchPlayers() async {
+    print("Fetching players");  
     final String? token = await storage.read(key: 'jwt_token');
     if (token == null) {
       throw Exception('JWT token not found');

@@ -31,8 +31,11 @@ class _PromptWaitingPageState extends State<PromptWaitingPage> {
 
     _channel.stream.listen((message) {
       final data = json.decode(message);
-      if (data['type'] == 'prompt_selected' && data['game_id'] == widget.gameId) {
-        _navigateToPromptResponse(data['prompt']);
+      print(data);
+      print(widget.gameId);
+      if (data['type'] == 'scenario_selected' && data['game_id'] == widget.gameId) {
+        print('Attempting to navigate to prompt response');
+        _navigateToPromptResponse();
       } else if (data['type'] == 'prompt_selector_update' && data['game_id'] == widget.gameId) {
         setState(() {
           _waitingMessage = 'Waiting for ${data['selector_name']} to select a prompt...';
@@ -41,13 +44,15 @@ class _PromptWaitingPageState extends State<PromptWaitingPage> {
     });
   }
 
-  void _navigateToPromptResponse(String prompt) {
+  void _navigateToPromptResponse() {
     Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PromptResponsePage(gameId: widget.gameId),
-      ),
-    );
+          context,
+          MaterialPageRoute(
+            builder: (context) => PromptResponsePage(
+              gameId: widget.gameId,
+            ),
+          ),
+        );
   }
 
   @override
